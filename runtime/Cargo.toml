@@ -1,0 +1,15 @@
+[package]
+name = "neuron-runtime"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+neuron-compiler = { path = "../compiler" }
+rayon = "1.8"
+matrixmultiply = "0.3"
+libloading = "0.8"
+
+[dev-dependencies]
+
+
+

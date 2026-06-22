@@ -1,0 +1,470 @@
+\documentclass[11pt,a4paper]{article}
+
+% ═══════════════════════════════════════════════════════════════════
+%  NEURON: Compile-Time Prevention of Temporal, Causal, and
+%  Uncertainty Errors in Machine Learning Programs
+%  Fayo Ibrahim — arXiv preprint, June 2026
+% ═══════════════════════════════════════════════════════════════════
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{fancyvrb}
+
+% ── Colors ──
+\definecolor{codebg}{RGB}{245, 245, 250}
+\definecolor{commentgray}{RGB}{106, 115, 125}
+\definecolor{kwblue}{RGB}{41, 98, 255}
+
+% ── Listings ──
+\lstdefinelanguage{neuron}{
+  keywords={fn, let, return, model, layer, causal, if, else, for, in, import, from, update, by, forget, observe, do, grad, print, constraint, variables, Effect, Mut, IO},
+  keywordstyle=\color{kwblue}\bfseries,
+  comment=[l]{//},
+  commentstyle=\color{commentgray}\itshape,
+  stringstyle=\color{green!40!black},
+  morestring=[b]",
+  sensitive=true,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{gray!30},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=1em,
+}
+\lstset{language=neuron}
+
+% ── Macros ──
+\newcommand{\ty}[1]{\texttt{#1}}
+
+\title{\textbf{NEURON: Compile-Time Prevention of Temporal, Causal,\\and Uncertainty Errors in Machine Learning Programs}}
+
+\author{Fayo Ibrahim}
+
+\date{June 2026}
+
+\begin{document}
+
+\maketitle
+
+% ═══════════════════════════════════════════════
+%  ABSTRACT
+% ═══════════════════════════════════════════════
+
+\begin{abstract}
+We describe NEURON, a statically typed programming language that uses domain-specific type constructors to detect three classes of errors in machine learning programs at compile time: temporal leaks (lookahead bias), causal mode confusion (conflation of observational and interventional data), and unguarded use of uncertain values. The language introduces four type constructors---\ty{Temporal[T, direction]}, \ty{Causal[T, mode]}, \ty{Uncertain[T]}, and \ty{Effect[E$_1$, ...]}---integrated into a type checker that runs before program execution. We present the typing rules for each constructor, describe the implementation (a prototype compiler in approximately 12,000 lines of Rust with 17 test suites), and evaluate the system on three worked examples that produce specific, reproducible compiler diagnostics. We also report results from automated testing including 100,000 iterations of training convergence and 1,000 fuzz-generated inputs with no compiler crashes.
+\end{abstract}
+
+% ═══════════════════════════════════════════════
+%  1. INTRODUCTION
+% ═══════════════════════════════════════════════
+
+\section{Introduction}
+
+Machine learning programs are subject to failure modes that are structurally different from those in conventional software. Three of the most damaging are:
+
+\textbf{Temporal leaks.} In time-series modeling, a program may inadvertently use data from time $t+k$ to make predictions at time $t$. This is called lookahead bias. The resulting model appears to perform well in backtesting but fails in production because the future data it relied on is unavailable at inference time. This class of error has been implicated in significant financial losses, including Zillow's \$881 million write-down in its algorithmic homebuying division~\cite{zillow2021}.
+
+\textbf{Causal confusion.} A model may conflate the conditional probability $P(Y \mid X = x)$ with the interventional quantity $P(Y \mid \text{do}(X = x))$. In clinical settings, this distinction determines whether a treatment is merely correlated with recovery or actually causes it. Existing frameworks represent both as floating-point values with no type-level distinction.
+
+\textbf{Unguarded uncertainty.} A model may produce a prediction with low confidence, which is then consumed by downstream code without checking whether the confidence exceeds a safety threshold.
+
+These errors share a property: they are invisible to standard type systems and testing frameworks, but they could be detected by a type system that encodes temporal direction, causal mode, and confidence requirements into types.
+
+NEURON is a programming language that implements such a type system. This paper describes its design, typing rules, implementation, and evaluation on three worked examples.
+
+\subsection{Scope and Limitations}
+
+We make the following claims and note their boundaries:
+
+\begin{itemize}[itemsep=2pt]
+  \item \textbf{Claim 1}: NEURON's type checker rejects programs that contain temporal leaks, causal mode confusion, and unguarded uncertainty access, as defined by our typing rules. \emph{Boundary}: The type system is not formally proved sound. We demonstrate correctness through examples and testing, not through a proof.
+  
+  \item \textbf{Claim 2}: The compiler is implemented and produces the diagnostics shown in this paper. \emph{Boundary}: The implementation is a working prototype, not a production-grade compiler. Performance has not been benchmarked against PyTorch or JAX.
+  
+  \item \textbf{Claim 3}: In our testing, the autograd engine produces gradients consistent with the formulas listed in \S4.2, with no discrepancies found in convergence tests or interpreter/JIT parity checks. \emph{Boundary}: This is empirical evidence, not a formal proof of correctness. We have not compared against reference implementations.
+  
+  \item \textbf{Not yet implemented}: GPU backend, cross-module type inference (imported symbols currently receive type \ty{Any}), formal soundness proof.
+\end{itemize}
+
+\subsection{Contributions}
+
+\begin{enumerate}[itemsep=2pt]
+  \item Typing rules for four domain-specific type constructors, including a discussion of design trade-offs in temporal direction tracking (\S3).
+  \item Worked examples with exact compiler output for each error class (\S5).
+  \item A prototype implementation comprising ${\sim}12{,}000$ lines of Rust, 17 test suites, and 8 standard library modules (\S4).
+  \item A structural causal model engine supporting \ty{observe}, \ty{intervene}, and \ty{counterfactual} with do-calculus semantics (\S4.3).
+\end{enumerate}
+
+% ═══════════════════════════════════════════════
+%  2. LANGUAGE OVERVIEW
+% ═══════════════════════════════════════════════
+
+\section{Language Overview}
+
+NEURON is an indentation-based, expression-oriented language. We present its relevant features.
+
+\subsection{Tensor Shapes in Types}
+
+Tensor dimensions are part of the type. The compiler verifies shape compatibility before execution:
+
+\begin{lstlisting}
+fn matmul_safe(a: Tensor[3, 4], b: Tensor[4, 5]) -> Tensor[3, 5]:
+  return a @ b
+\end{lstlisting}
+
+This type-checks because the inner dimensions (4) match. Changing \ty{b} to \ty{Tensor[6, 5]} produces a \ty{ShapeMismatch} error. Dimensions may be symbolic (\ty{B}, \ty{D}), enabling polymorphic signatures:
+
+\begin{lstlisting}
+fn linear(x: Tensor[B, D], w: Tensor[D, K]) -> Tensor[B, K]:
+  return x @ w
+\end{lstlisting}
+
+\subsection{Differentiation and Training}
+
+Functions are differentiable by default. The \ty{grad()} expression computes gradients, and \ty{update ... by} applies optimizer steps:
+
+\begin{lstlisting}
+model Net:
+  w: Tensor[1, 1] = zeros(1, 1) + 5.0
+
+  fn train_step(self, x: Tensor[1, 1], y: Tensor[1, 1])
+      [Effect[Mut[self], IO]]:
+    let pred = x @ self.w
+    let loss = mse(pred, y)
+    update self.w by sgd(grad(loss), lr=0.1)
+\end{lstlisting}
+
+The \ty{[Effect[Mut[self], IO]]} annotation is required because the function mutates \ty{self} and performs I/O. Omitting it produces an \ty{EffectUndeclared} error.
+
+\subsection{Causal Model Declarations}
+
+NEURON provides syntax for structural causal models:
+
+\begin{lstlisting}
+causal DrugTrial:
+  variables: age, drug, biomarker, recovery
+  age -> drug
+  age -> biomarker
+  drug -> recovery
+  biomarker -> recovery
+\end{lstlisting}
+
+This declares a DAG with causal semantics. The runtime provides \ty{observe} (Bayesian conditioning), \ty{intervene} (do-calculus), and \ty{counterfactual} (Abduction-Action-Prediction) operations.
+
+% ═══════════════════════════════════════════════
+%  3. TYPING RULES
+% ═══════════════════════════════════════════════
+
+\section{Typing Rules}
+
+We present the typing rules for each type constructor using standard inference rule notation.
+
+\subsection{Temporal Types}
+\label{sec:temporal}
+
+\textbf{Syntax}: \ty{Temporal[T, d]} where $d \in \{\ty{past}, \ty{future}\}$. We abbreviate \ty{past\_to\_future} as \ty{past} and \ty{future\_to\_past} as \ty{future}.
+
+\textbf{Rule T-Before} (preserves direction):
+\begin{equation}
+\frac{\Gamma \vdash e : \ty{Temporal}[T, d]}{\Gamma \vdash e.\ty{before}(k) : \ty{Temporal}[T, d]}
+\end{equation}
+
+\textbf{Rule T-After} (flips direction):
+\begin{equation}
+\frac{\Gamma \vdash e : \ty{Temporal}[T, \ty{past}]}{\Gamma \vdash e.\ty{after}(k) : \ty{Temporal}[T, \ty{future}]}
+\end{equation}
+
+\textbf{Rule T-Snapshot} (strips temporal wrapper):
+\begin{equation}
+\frac{\Gamma \vdash e : \ty{Temporal}[T, d]}{\Gamma \vdash e.\ty{snapshot}() : T}
+\end{equation}
+
+\textbf{Rule T-Leak} (rejects temporal mismatches at call sites):
+\begin{equation}
+\frac{\Gamma \vdash f : \ty{Temporal}[T, \ty{past}] \to T' \quad \Gamma \vdash e : \ty{Temporal}[T, \ty{future}]}{\Gamma \vdash f(e) : \textbf{error}[\ty{TemporalLeak}]}
+\end{equation}
+
+\subsubsection{Design Discussion: Binary Direction vs.\ Integer Offsets}
+
+The current type system uses a binary direction tag (\ty{past}/\ty{future}). An alternative design would use integer offsets:
+\[
+\ty{Temporal}[T, \Delta] \quad \text{where } \Delta \in \mathbb{Z}
+\]
+Under this model, \ty{prices.after(k)} would produce \ty{Temporal}$[T, \Delta+k]$, and the safety rule would reject any expression where $\Delta > 0$ flows into a context expecting $\Delta \leq 0$. Offsets would compose algebraically: \ty{.after(3).before(1)} would yield $\Delta = +2$, still unsafe.
+
+We chose the binary model for two reasons. First, the most common temporal error in practice is using \emph{any} future data where \emph{only} past data is permitted; the binary model catches this directly. Second, the binary model requires only a string comparison at call sites, whereas the offset model would require integer arithmetic in the type checker and potentially subtyping ($\Delta = 0$ as a subtype of $\Delta \leq 0$).
+
+The binary model abstracts all future offsets into a single category and therefore sacrifices precision for simplicity. The offset model would reject strictly more programs in some cases (e.g., distinguishing $\Delta = +1$ from $\Delta = +5$), while the binary model collapses all positive offsets into \ty{future}. The two models are not in a strict subset relationship; rather, the binary model is a coarser abstraction that trades granularity for implementability. We consider the offset extension future work.
+
+\subsection{Causal Types}
+\label{sec:causal}
+
+\textbf{Syntax}: \ty{Causal[T, m]} where $m \in \{\ty{observed}, \ty{intervened}\}$.
+
+\textbf{Rule C-Observe}:
+\begin{equation}
+\frac{\Gamma \vdash \ty{model} : \ty{CausalModel}}{\Gamma \vdash \ty{observe}(\ty{model}, \ldots) : \ty{Causal}[T, \ty{observed}]}
+\end{equation}
+
+\textbf{Rule C-Intervene}:
+\begin{equation}
+\frac{\Gamma \vdash \ty{model} : \ty{CausalModel}}{\Gamma \vdash \ty{intervene}(\ty{model}, \ldots) : \ty{Causal}[T, \ty{intervened}]}
+\end{equation}
+
+\textbf{Rule C-Mismatch} (rejects mixed causal modes):
+\begin{equation}
+\frac{\Gamma \vdash e_1 : \ty{Causal}[T, m_1] \quad \Gamma \vdash e_2 : \ty{Causal}[T, m_2] \quad m_1 \neq m_2}{\Gamma \vdash e_1 \oplus e_2 : \textbf{error}[\ty{CausalTypeMismatch}]}
+\end{equation}
+
+\subsection{Uncertainty Types}
+\label{sec:uncertainty}
+
+\textbf{Syntax}: \ty{Uncertain[T]}. Rather than a hard error, uncertainty checking uses a warning-based approach that tracks access patterns within each function scope:
+
+\begin{itemize}[itemsep=2pt]
+  \item \textbf{Rule U-Access}: Accessing \ty{e.value} where $\Gamma \vdash e : \ty{Uncertain}[T]$ records an \emph{uncertain access} for variable $e$.
+  \item \textbf{Rule U-Check}: Accessing \ty{e.confidence} records a \emph{confidence check} for variable $e$.
+  \item \textbf{Rule U-Warn}: At scope exit, variables with uncertain accesses but no confidence check trigger a warning.
+\end{itemize}
+
+\subsection{Effect Types}
+\label{sec:effects}
+
+\textbf{Syntax}: \ty{[Effect[E$_1$, E$_2$, ...]]} where $E_i \in \{\ty{Mut[target]}, \ty{IO}, \ty{Rand}\}$.
+
+If a function body contains an \ty{update} statement targeting variable $x$, the function must declare \ty{Effect[Mut[x]]}. Otherwise the type checker reports an \ty{EffectUndeclared} error.
+
+\subsection{Dimension Unification}
+
+Tensor shape checking uses a unification algorithm over dimension expressions $\text{Dim} ::= n \mid \alpha \mid \textit{name}{:}\alpha \mid \texttt{?}$. Static dimensions unify iff equal; symbolic dimensions bind on first occurrence; dynamic dimensions (\texttt{?}) unify with any dimension but emit a warning.
+
+% ═══════════════════════════════════════════════
+%  4. IMPLEMENTATION
+% ═══════════════════════════════════════════════
+
+\section{Implementation}
+
+NEURON is implemented as a prototype compiler in Rust, comprising approximately 12,000 lines of source code, 17 test suites (1,673 lines), and 8 standard library modules (1,983 lines of NEURON source).
+
+\subsection{Compiler Pipeline}
+
+The compiler follows a standard multi-pass architecture: source is tokenized by a lexer with INDENT/DEDENT support, parsed by a recursive-descent parser with Pratt precedence for expressions, type-checked in two phases (registration then body checking), lowered to SSA-style IR with basic blocks and terminators, and executed by either an interpreter (VM) or a JIT compiler that transpiles IR to Rust source and invokes \texttt{rustc}.
+
+\subsection{Autograd Engine}
+
+The autograd implements tape-based reverse-mode automatic differentiation. Each forward operation records an entry containing the operation type, tensor IDs, and captured data for the backward pass. Correct gradients are implemented for: Add, Sub, Mul, MatMul ($\nabla_A = \nabla_C B^T$, $\nabla_B = A^T \nabla_C$), ReLU, Sigmoid ($\sigma(x)(1-\sigma(x))$), Tanh ($1 - \tanh^2(x)$), GeLU ($\Phi(x) + x\phi(x)$), Softmax (Jacobian-vector product), CrossEntropy, and MSE.
+
+\subsection{Causal Engine}
+
+The causal engine implements linear structural causal models where each variable satisfies $X_i = \sum_j W_{ji} X_j + U_i$, $U_i \sim \mathcal{N}(\mu_i, \sigma_i^2)$. Three operations are supported:
+
+\begin{itemize}[itemsep=2pt]
+  \item \textbf{Observe}: Bayesian conditioning. Given evidence $X_E = x_E$, computes the posterior mean of query variables under the \emph{unmodified} structural equations via $\mu_{Q|E} = \mu_Q + \Sigma_{QE}\Sigma_{EE}^{-1}(x_E - \mu_E)$. No structural equations are modified.
+  \item \textbf{Intervene}: do-calculus. For $\text{do}(X_i = v)$, the engine modifies the structural equations in two steps: (1)~it sets $W_{ji} = 0$ for all $j$, removing all causal parents of $X_i$ from its structural equation; (2)~it replaces the exogenous noise term $U_i$ with the constant $v$. All other structural equations remain unchanged. The engine then solves $(I - W'^T)^{-1}U'$ to compute the interventional distribution.
+  \item \textbf{Counterfactual}: Three-step Abduction-Action-Prediction. (1)~Infer posterior exogenous noise $E[U | X_E = x_E]$ from the joint covariance of $(U, X)$. (2)~Construct an intervened SCM using these posterior noise values. (3)~Solve to obtain counterfactual values $X^{CF}$.
+\end{itemize}
+
+% ═══════════════════════════════════════════════
+%  5. EVALUATION
+% ═══════════════════════════════════════════════
+
+\section{Evaluation}
+
+\subsection{Temporal Leak Detection}
+
+The following program passes future data into a function expecting past data:
+
+\begin{lstlisting}
+fn predict_signal(prices: Temporal[Tensor, past_to_future]):
+  let features = prices.before(20)
+  let w = glorot(20, 1)
+  return features @ w
+
+fn backtest_with_leak(prices: Temporal[Tensor, past_to_future]):
+  let future_prices = prices.after(1)
+  return predict_signal(future_prices)
+\end{lstlisting}
+
+The compiler output (reproduced verbatim):
+
+\begin{Verbatim}[fontsize=\small,frame=single]
+error[TemporalLeak]: Temporal direction violation:
+data flows future_to_past but context expects
+past_to_future — lookahead bias detected
+ --> demo_million_dollar_bug.nr:23:10
+  23 |  return predict_signal(future_prices)
+              ^^^^^^^^^^^^^^
+  help: Use .before(t) to restrict temporal data
+        to the past
+\end{Verbatim}
+
+\textbf{Mechanism}: \ty{prices.after(1)} applies rule T-After, changing the type to \ty{Temporal[Tensor, future\_to\_past]}. Passing this to \ty{predict\_signal} triggers rule T-Leak.
+
+\subsection{Causal Mode Confusion}
+
+\begin{lstlisting}
+fn wrong_treatment_effect(model):
+  let correlation = observe(model, drug=1)
+  let causation = intervene(model, drug=1)
+  return correlation + causation
+\end{lstlisting}
+
+\begin{Verbatim}[fontsize=\small,frame=single]
+error[CausalTypeMismatch]: Cannot combine observed
+and intervened causal values
+ --> demo_causal.nr:31:10
+  31 |  return correlation + causation
+              ^^^^^^^^^^^
+  help: Use only observed or only intervened data
+        in the same expression.
+\end{Verbatim}
+
+\textbf{Mechanism}: \ty{observe} returns \ty{Causal[T, observed]}; \ty{intervene} returns \ty{Causal[T, intervened]}. The \ty{+} triggers rule C-Mismatch.
+
+\subsection{Training Convergence}
+
+To verify the autograd, we fit a weight $w$ starting at 5.0 to satisfy $2w = 6$ (target $w = 3.0$):
+
+\begin{lstlisting}
+model Net:
+  w: Tensor[1, 1] = zeros(1, 1) + 5.0
+
+  fn train_step(self, x, y) [Effect[Mut[self], IO]]:
+    let pred = x @ self.w
+    let loss = mse(pred, y)
+    update self.w by sgd(grad(loss), lr=0.1)
+\end{lstlisting}
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Step} & \textbf{Loss} & \textbf{Weight} \\
+\midrule
+0 & 16.000000 & $5.0 \to 3.4$ \\
+1 & 0.640000 & $3.4 \to 3.08$ \\
+2 & 0.025600 & $3.08 \to 3.016$ \\
+3 & 0.001024 & $3.016 \to 3.003$ \\
+4 & 0.000041 & $3.003 \to 3.0006$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The weight converges to 3.0006 (target: 3.0), consistent with correct MSE gradient computation under SGD.
+
+\subsection{Automated Testing}
+
+\begin{center}
+\begin{tabular}{llrl}
+\toprule
+\textbf{Suite} & \textbf{Method} & \textbf{Count} & \textbf{Result} \\
+\midrule
+Endurance & Fresh VM per iter, check NaN/Inf/tape & 100,000 & 0 NaN, 0 Inf \\
+Fuzzing & Malformed source programs & 1,000 & 0 panics \\
+JIT parity & Random programs, VM vs JIT & 100 & All identical \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ═══════════════════════════════════════════════
+%  6. RELATED WORK
+% ═══════════════════════════════════════════════
+
+\section{Related Work}
+
+\textbf{ML Frameworks.} PyTorch~\cite{paszke2019}, TensorFlow~\cite{abadi2016}, and JAX~\cite{bradbury2018} provide automatic differentiation but perform shape and type checking at runtime. Temporal and causal types are not part of their type systems.
+
+\textbf{Typed Tensor Languages.} Dex~\cite{paszke2021dex} provides typed indexing with dependent types. Futhark~\cite{henriksen2017} compiles a functional array language to GPU. Neither addresses temporal direction or causal mode tracking.
+
+\textbf{Probabilistic Programming.} Stan~\cite{carpenter2017}, Pyro~\cite{bingham2019}, and Gen~\cite{cusumano2019} support probabilistic inference. None distinguish observational from interventional distributions at the type level.
+
+\textbf{Causal Inference Libraries.} DoWhy~\cite{sharma2020} and EconML~\cite{battocchi2019} implement causal algorithms in Python without type-level enforcement.
+
+\textbf{Effect Systems.} Koka~\cite{leijen2017} and Frank~\cite{lindley2017} implement algebraic effects for general-purpose programming. NEURON's effect system is simpler, tracking only \ty{Mut}, \ty{IO}, and \ty{Rand}.
+
+\textbf{Differentiable Languages.} Swift for TensorFlow~\cite{wei2019} (discontinued 2021) integrated differentiation into Swift. Myia~\cite{vanmerrienboer2019} compiled a Python subset with AD. To our knowledge, neither addressed temporal, causal, or uncertainty types.
+
+% ═══════════════════════════════════════════════
+%  7. DISCUSSION
+% ═══════════════════════════════════════════════
+
+\section{Discussion}
+
+\textbf{What this system does not do.} It does not verify that a causal graph is \emph{correct}---only that observed and intervened values are not mixed. It does not prove that temporal annotations are \emph{accurate}---only that future-typed data does not flow into past-only contexts. It does not guarantee uncertainty bounds are \emph{calibrated}---only that confidence is checked before use. It does not type-check across module boundaries. It has not been benchmarked for speed.
+
+The type system enforces \emph{structural} correctness---whether the right kinds of values flow to the right places---not \emph{semantic} correctness---whether the values themselves are accurate.
+
+\textbf{Future work.} Offset-based temporal types (\S\ref{sec:temporal}), cross-module type inference, GPU backend, and formal soundness proof.
+
+% ═══════════════════════════════════════════════
+%  8. CONCLUSION
+% ═══════════════════════════════════════════════
+
+\section{Conclusion}
+
+We have described NEURON, a programming language with four domain-specific type constructors that detect temporal leaks, causal confusion, and unguarded uncertainty at compile time. We presented the typing rules, showed three worked examples with exact compiler output, and reported results from automated testing. The implementation is available as open source.
+
+% ═══════════════════════════════════════════════
+%  REFERENCES
+% ═══════════════════════════════════════════════
+
+\begin{thebibliography}{99}
+
+\bibitem{zillow2021}
+W.~Parker and L.~Thomas, ``Zillow quits home-flipping business, plans to cut 2,000 jobs,'' \emph{Wall Street Journal}, Nov. 2021.
+
+\bibitem{paszke2019}
+A.~Paszke et al., ``PyTorch: An imperative style, high-performance deep learning library,'' in \emph{NeurIPS}, 2019.
+
+\bibitem{abadi2016}
+M.~Abadi et al., ``TensorFlow: A system for large-scale machine learning,'' in \emph{OSDI}, 2016.
+
+\bibitem{bradbury2018}
+J.~Bradbury et al., ``JAX: Composable transformations of Python+NumPy programs,'' 2018.
+
+\bibitem{paszke2021dex}
+A.~Paszke et al., ``Getting to the point: Index sets and parallelism-preserving autodiff for pointful array programming,'' \emph{Proc. ACM Program. Lang.}, vol.~5, ICFP, 2021.
+
+\bibitem{henriksen2017}
+T.~Henriksen et al., ``Futhark: Purely functional GPU-programming with nested parallelism and in-place array updates,'' in \emph{PLDI}, 2017.
+
+\bibitem{carpenter2017}
+B.~Carpenter et al., ``Stan: A probabilistic programming language,'' \emph{J. Stat. Software}, vol.~76, no.~1, 2017.
+
+\bibitem{bingham2019}
+E.~Bingham et al., ``Pyro: Deep universal probabilistic programming,'' \emph{JMLR}, vol.~20, no.~28, 2019.
+
+\bibitem{cusumano2019}
+M.~F.~Cusumano-Towner et al., ``Gen: A general-purpose probabilistic programming system with programmable inference,'' in \emph{PLDI}, 2019.
+
+\bibitem{sharma2020}
+A.~Sharma and E.~Kiciman, ``DoWhy: An end-to-end library for causal inference,'' \emph{arXiv:2011.04216}, 2020.
+
+\bibitem{battocchi2019}
+K.~Battocchi et al., ``EconML: A Python package for ML-based heterogeneous treatment effects estimation,'' 2019.
+
+\bibitem{leijen2017}
+D.~Leijen, ``Type directed compilation of row-typed algebraic effects,'' in \emph{POPL}, 2017.
+
+\bibitem{lindley2017}
+S.~Lindley, C.~McBride, and C.~McLaughlin, ``Do be do be do,'' in \emph{POPL}, 2017.
+
+\bibitem{wei2019}
+R.~Wei et al., ``Differentiable programming for gradient-based machine learning,'' 2019.
+
+\bibitem{vanmerrienboer2019}
+B.~van~Merri\"enboer et al., ``Automatic differentiation in ML: Where we are and where we should be going,'' in \emph{NeurIPS}, 2019.
+
+\end{thebibliography}
+
+\end{document}

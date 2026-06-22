@@ -1,0 +1,13 @@
+[package]
+name = "neuronc"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "neuronc"
+path = "src/main.rs"
+
+[dependencies]
+neuron-compiler = { path = "../compiler" }
+neuron-runtime = { path = "../runtime" }
+libloading = "0.8"
