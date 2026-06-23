@@ -41,7 +41,7 @@ agent EpisodicMemorySystem(embed_dim: Int, capacity: Int):
 
   fn forget_old(self, max_age: Int) [Effect[Mut[self]]]:
     let age = self.current_time - self.timestamps
-    let keep_mask = sigmoid((max_age - age) * 10.0)
+    let keep_mask = sigmoid((-age + max_age) * 10.0)
 
 // ─────────────────────────────────────────────
 //  Semantic Memory System
@@ -199,7 +199,7 @@ model WorldModel(state_dim: Int, action_dim: Int, hidden_dim: Int, latent_dim: I
 // ─────────────────────────────────────────────
 fn safe_action_filter(action: Tensor[B, A], constraints: Tensor[C, A], threshold: Float) -> Tensor[B, A]:
   let violations = action @ constraints
-  let is_safe = sigmoid((threshold - violations) * 10.0)
+  let is_safe = sigmoid((-violations + threshold) * 10.0)
   let safe_action = action * is_safe
   return safe_action
 

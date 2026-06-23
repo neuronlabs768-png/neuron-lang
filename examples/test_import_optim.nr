@@ -1,4 +1,4 @@
-﻿import optim
+import optim
 import distributions
 import rl
 
