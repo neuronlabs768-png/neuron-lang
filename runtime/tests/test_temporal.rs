@@ -6,7 +6,7 @@ fn test_integration_temporal_violation() {
     let mut prog = IRProgram::new();
     let mut func = IRFunction::new("main");
     
-    let mut block = BasicBlock {
+    let block = BasicBlock {
         id: 0,
         instructions: vec![
             // Load the temporal value from global scope

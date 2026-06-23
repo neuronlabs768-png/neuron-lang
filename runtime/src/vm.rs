@@ -1831,7 +1831,7 @@ mod tests {
     fn test_vm_const() {
         let mut prog = IRProgram::new();
         let mut func = IRFunction::new("main");
-        let mut block = BasicBlock {
+        let block = BasicBlock {
             id: 0,
             instructions: vec![
                 IRNode {
@@ -1862,7 +1862,7 @@ mod tests {
         let mut prog = IRProgram::new();
         let mut func = IRFunction::new("main");
         // zeros(2,3)
-        let mut block = BasicBlock {
+        let block = BasicBlock {
             id: 0,
             instructions: vec![
                 IRNode {

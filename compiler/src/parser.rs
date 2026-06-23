@@ -10,6 +10,7 @@ use crate::errors::{ErrorCode, NeuronError};
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
+    #[allow(dead_code)]
     filename: String,
 }
 

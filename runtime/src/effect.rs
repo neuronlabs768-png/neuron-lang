@@ -24,6 +24,7 @@ struct EffectScope {
 #[derive(Debug)]
 struct ObservedEffect {
     kind: String,
+    #[allow(dead_code)]
     target: Option<String>,
     location: String,
 }

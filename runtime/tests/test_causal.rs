@@ -6,7 +6,7 @@ fn test_integration_causal_mismatch() {
     let mut prog = IRProgram::new();
     let mut func = IRFunction::new("main");
     
-    let mut block = BasicBlock {
+    let block = BasicBlock {
         id: 0,
         instructions: vec![
             // ValueId 0: a constant value

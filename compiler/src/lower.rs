@@ -794,6 +794,7 @@ impl Lowerer {
         }
     }
 
+    #[allow(dead_code)]
     fn extract_shape_args(&self, args: &[CallArg]) -> Vec<i64> {
         args.iter().filter_map(|a| {
             if let Expr::IntLit(v, _) = &a.value { Some(*v) } else { None }

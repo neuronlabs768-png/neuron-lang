@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::fs;
 use neuron_compiler::compile;
 use neuron_compiler::transpiler::Transpiler;
 use neuron_runtime::vm::{Value, VM};

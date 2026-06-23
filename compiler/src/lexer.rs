@@ -464,6 +464,7 @@ mod tests {
         Lexer::new(src).tokenize().unwrap()
     }
 
+    #[allow(dead_code)]
     fn types(src: &str) -> Vec<String> {
         lex(src).iter().map(|t| t.ty.name().to_string()).collect()
     }

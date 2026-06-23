@@ -38,7 +38,7 @@ let z = x + y
 #[test]
 fn test_integration_causal_mix() {
     // Binary operation between observed and intervened causal values
-    let src = r#"
+    let _src = r#"
 let model = CausalModel_new()
 let obs = model.observe(treatment = 1.0)
 let int = model.intervene(treatment = 1.0)
