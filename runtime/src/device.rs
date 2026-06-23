@@ -280,6 +280,97 @@ impl CudaContext {
             }
             (cuda.cuMemFree_v2)(dev_ptr);
             
+            // Test-launch a trivial kernel to verify kernel execution is allowed.
+            // Some container sandboxes (e.g. free-tier Colab) allow UVM allocation
+            // but block cuLaunchKernel. Detect this early and fall back to CPU.
+            {
+                use std::ffi::CString;
+                
+                let test_src = CString::new(r#"extern "C" __global__ void _neuron_probe(double* out) { out[0] = 42.0; }"#).unwrap();
+                let test_name = CString::new("probe.cu").unwrap();
+                let entry_name = CString::new("_neuron_probe").unwrap();
+                
+                // Compile with NVRTC
+                let mut prog = std::ptr::null_mut();
+                let r = (nvrtc.nvrtcCreateProgram)(&mut prog, test_src.as_ptr(), test_name.as_ptr(), 0, std::ptr::null(), std::ptr::null());
+                if r != 0 {
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA probe: nvrtcCreateProgram failed (code {})", r));
+                }
+                
+                let opt = CString::new("--std=c++11").unwrap();
+                let options = [opt.as_ptr()];
+                let r = (nvrtc.nvrtcCompileProgram)(prog, 1, options.as_ptr());
+                if r != 0 {
+                    (nvrtc.nvrtcDestroyProgram)(&mut prog);
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA probe: nvrtcCompileProgram failed (code {})", r));
+                }
+                
+                let mut ptx_size = 0;
+                (nvrtc.nvrtcGetPTXSize)(prog, &mut ptx_size);
+                let mut ptx = vec![0u8; ptx_size];
+                (nvrtc.nvrtcGetPTX)(prog, ptx.as_mut_ptr() as *mut std::os::raw::c_char);
+                (nvrtc.nvrtcDestroyProgram)(&mut prog);
+                
+                // Load module and get function
+                let mut module = std::ptr::null_mut();
+                let r = (cuda.cuModuleLoadData)(&mut module, ptx.as_ptr() as *const std::ffi::c_void);
+                if r != 0 {
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA probe: cuModuleLoadData failed (code {})", r));
+                }
+                
+                let mut function = std::ptr::null_mut();
+                let r = (cuda.cuModuleGetFunction)(&mut function, module, entry_name.as_ptr());
+                if r != 0 {
+                    (cuda.cuModuleUnload)(module);
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA probe: cuModuleGetFunction failed (code {})", r));
+                }
+                
+                // Allocate a single-element UVM buffer for the probe
+                let mut probe_ptr: u64 = 0;
+                let r = (cuda.cuMemAllocManaged)(&mut probe_ptr, 8, 0x01);
+                if r != 0 {
+                    (cuda.cuModuleUnload)(module);
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA probe: allocation failed (code {})", r));
+                }
+                
+                let mut args: [*mut std::ffi::c_void; 1] = [
+                    &mut probe_ptr as *mut u64 as *mut std::ffi::c_void,
+                ];
+                
+                let launch_res = (cuda.cuLaunchKernel)(
+                    function,
+                    1, 1, 1,  // grid 1x1x1
+                    1, 1, 1,  // block 1x1x1
+                    0,
+                    std::ptr::null_mut(),
+                    args.as_mut_ptr(),
+                    std::ptr::null_mut(),
+                );
+                
+                let sync_res = if launch_res == 0 {
+                    (cuda.cuCtxSynchronize)()
+                } else {
+                    0
+                };
+                
+                (cuda.cuMemFree_v2)(probe_ptr);
+                (cuda.cuModuleUnload)(module);
+                
+                if launch_res != 0 {
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA kernel launch not permitted in this environment (cuLaunchKernel code {})", launch_res));
+                }
+                if sync_res != 0 {
+                    (cuda.cuCtxDestroy_v2)(ctx);
+                    return Err(format!("CUDA kernel sync not permitted in this environment (cuCtxSynchronize code {})", sync_res));
+                }
+            }
+            
             Ok(CudaContext {
                 cuda,
                 nvrtc,

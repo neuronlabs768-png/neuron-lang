@@ -1645,12 +1645,15 @@ impl VM {
                 )
             };
             if res != 0 {
-                return Err(format!("cuLaunchKernel failed: {}", res));
+                let err_str = cuda_error_string(ctx, res);
+                return Err(format!("cuLaunchKernel failed (code {}): {} [grid={}, block={}, args={}, numel={}]",
+                    res, err_str, grid_size, block_size, kernel_params.len(), numel));
             }
             
             let res = unsafe { (ctx.cuda.cuCtxSynchronize)() };
             if res != 0 {
-                return Err(format!("cuCtxSynchronize failed: {}", res));
+                let err_str = cuda_error_string(ctx, res);
+                return Err(format!("cuCtxSynchronize failed (code {}): {}", res, err_str));
             }
             
             output_tensor.data.prefetch_to_host();
@@ -1673,6 +1676,18 @@ impl Drop for VM {
                 }
             }
         }
+    }
+}
+
+/// Convert a CUDA driver error code into a human-readable string.
+fn cuda_error_string(ctx: &crate::device::CudaContext, code: u32) -> String {
+    let mut ptr: *const std::os::raw::c_char = std::ptr::null();
+    let res = unsafe { (ctx.cuda.cuGetErrorString)(code, &mut ptr) };
+    if res == 0 && !ptr.is_null() {
+        let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
+        cstr.to_string_lossy().into_owned()
+    } else {
+        format!("unknown error (code {})", code)
     }
 }
 
