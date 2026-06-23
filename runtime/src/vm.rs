@@ -627,17 +627,10 @@ impl VM {
 
             IROp::Zeros(shape) => {
                 let s: Vec<usize> = if !node.inputs.is_empty() {
-                    let resolved: Vec<usize> = node.inputs.iter().map(|id| {
-                        let val = get(id);
-                        let dim = val.as_int() as usize;
-                        eprintln!("[NEURON-DEBUG] Zeros input id={} val={:?} dim={}", id, val.display(), dim);
-                        dim
-                    }).collect();
-                    resolved
+                    node.inputs.iter().map(|id| get(id).as_int() as usize).collect()
                 } else {
                     shape.iter().map(|&d| d as usize).collect()
                 };
-                eprintln!("[NEURON-DEBUG] Zeros final shape={:?}", s);
                 let mut t = Tensor::zeros(&s);
                 t.id = self.tape.alloc_id();
                 Ok(Value::Tensor(t))
@@ -1604,23 +1597,15 @@ impl VM {
                 
             let mut output_shape = vec![1];
             for &input_id in &kernel.inputs {
-                let val = get_val(input_id);
-                eprintln!("[NEURON-CUDA-DEBUG] kernel input id={} type={}", input_id, 
-                    match &val { Value::Tensor(t) => format!("Tensor(shape={:?}, uvm_ptr={})", t.shape, t.uvm_device_ptr()),
-                                 Value::Float(f) => format!("Float({})", f),
-                                 Value::Void => "Void".into(),
-                                 _ => "Other".into() });
-                if let Value::Tensor(t) = val {
+                if let Value::Tensor(t) = get_val(input_id) {
                     output_shape = t.shape.clone();
                     break;
                 }
             }
             let numel = output_shape.iter().product::<usize>();
-            eprintln!("[NEURON-CUDA-DEBUG] output_shape={:?}, numel={}", output_shape, numel);
             
             // Guard: grid=0 is an invalid CUDA launch. Fall back to CPU.
             if numel == 0 {
-                eprintln!("[NEURON-CUDA] numel=0, falling back to CPU for fused group {}", g_idx);
                 // Execute all nodes on CPU instead
                 let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
                 for node in &group.instructions {
@@ -1637,7 +1622,6 @@ impl VM {
             
             // If output UVM allocation failed (ptr=0), fall back to CPU
             if out_ptr == 0 {
-                eprintln!("[NEURON-CUDA] output UVM alloc failed (Host fallback), running on CPU for group {}", g_idx);
                 let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
                 for node in &group.instructions {
                     let res = self.exec_node(node, &local_ssa)?;
@@ -1665,7 +1649,6 @@ impl VM {
                     tensor.data.prefetch_to_device();
                     let ptr = tensor.uvm_device_ptr();
                     if ptr == 0 {
-                        eprintln!("[NEURON-CUDA] input {} has Host storage (no UVM ptr), falling back to CPU", input_id);
                         any_input_missing_uvm = true;
                         break;
                     }
