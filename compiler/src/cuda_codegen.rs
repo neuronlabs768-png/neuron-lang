@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use crate::ir::{IRFunction, IRNode, IROp, IRType, IRConst};
 
 /// A generated CUDA kernel representation
@@ -41,22 +41,37 @@ fn is_fusable(op: &IROp) -> bool {
     )
 }
 
-/// Helper to build a mapping from ValueId to IRType
-fn build_type_map(func: &IRFunction) -> HashMap<usize, IRType> {
-    let mut map = HashMap::new();
+fn is_tensor_type(ty: &IRType) -> bool {
+    match ty {
+        IRType::Tensor(_) => true,
+        IRType::Uncertain(inner) => is_tensor_type(inner),
+        IRType::Random(inner) => is_tensor_type(inner),
+        IRType::Temporal(inner, _) => is_tensor_type(inner),
+        IRType::Causal(inner, _) => is_tensor_type(inner),
+        _ => false,
+    }
+}
+
+pub fn get_tensor_ids(func: &IRFunction) -> HashSet<usize> {
+    let mut set = HashSet::new();
     for param in &func.params {
-        map.insert(param.id, param.ty.clone());
+        if is_tensor_type(&param.ty) {
+            set.insert(param.id);
+        }
     }
     for block in &func.blocks {
         for node in &block.instructions {
-            map.insert(node.id, node.output_type.clone());
+            if is_tensor_type(&node.output_type) || !node.output_shape.is_empty() {
+                set.insert(node.id);
+            }
         }
     }
-    map
+    set
 }
 
 /// Identify contiguous groups of element-wise operators inside basic blocks
 pub fn find_fused_groups(func: &IRFunction) -> Vec<FusedGroup> {
+    let tensor_ids = get_tensor_ids(func);
     let mut groups = Vec::new();
 
     for block in &func.blocks {
@@ -72,7 +87,7 @@ pub fn find_fused_groups(func: &IRFunction) -> Vec<FusedGroup> {
                 let node_shape = node.output_shape.clone();
                 
                 // If it is a tensor operation, check shape matching
-                let is_tensor = matches!(node.output_type, IRType::Tensor(_));
+                let is_tensor = tensor_ids.contains(&node.id);
                 let shape_compatible = if is_tensor {
                     if let Some(ref s) = current_shape {
                         s == &node_shape
@@ -114,7 +129,7 @@ pub fn find_fused_groups(func: &IRFunction) -> Vec<FusedGroup> {
 
 /// Generates CUDA C++ kernels from fused groups
 pub fn generate_cuda_kernels(func: &IRFunction) -> Vec<CudaKernel> {
-    let type_map = build_type_map(func);
+    let tensor_ids = get_tensor_ids(func);
     let groups = find_fused_groups(func);
     let mut kernels = Vec::new();
 
@@ -151,10 +166,7 @@ pub fn generate_cuda_kernels(func: &IRFunction) -> Vec<CudaKernel> {
         let mut arg_declarations = Vec::new();
 
         for &val_id in &inputs {
-            let is_tensor = match type_map.get(&val_id) {
-                Some(IRType::Tensor(_)) => true,
-                _ => false,
-            };
+            let is_tensor = tensor_ids.contains(&val_id);
             input_is_tensor.push(is_tensor);
 
             if is_tensor {
@@ -191,43 +203,43 @@ pub fn generate_cuda_kernels(func: &IRFunction) -> Vec<CudaKernel> {
                     _ => "0.0".to_string(),
                 },
                 IROp::Add => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
-                    let in1 = format_input(node.inputs[1], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
+                    let in1 = format_input(node.inputs[1], &inputs, &tensor_ids);
                     format!("{} + {}", in0, in1)
                 }
                 IROp::Sub => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
-                    let in1 = format_input(node.inputs[1], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
+                    let in1 = format_input(node.inputs[1], &inputs, &tensor_ids);
                     format!("{} - {}", in0, in1)
                 }
                 IROp::Mul => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
-                    let in1 = format_input(node.inputs[1], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
+                    let in1 = format_input(node.inputs[1], &inputs, &tensor_ids);
                     format!("{} * {}", in0, in1)
                 }
                 IROp::Div => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
-                    let in1 = format_input(node.inputs[1], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
+                    let in1 = format_input(node.inputs[1], &inputs, &tensor_ids);
                     format!("{} / {}", in0, in1)
                 }
                 IROp::Neg => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
                     format!("-{}", in0)
                 }
                 IROp::ReLU => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
                     format!("{} > 0.0 ? {} : 0.0", in0, in0)
                 }
                 IROp::GeLU => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
                     format!("{} * 0.5 * (1.0 + erf({} / 1.41421356))", in0, in0)
                 }
                 IROp::Sigmoid => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
                     format!("1.0 / (1.0 + exp(-{}))", in0)
                 }
                 IROp::Tanh => {
-                    let in0 = format_input(node.inputs[0], &inputs, &type_map);
+                    let in0 = format_input(node.inputs[0], &inputs, &tensor_ids);
                     format!("tanh({})", in0)
                 }
                 _ => "0.0".to_string(),
@@ -258,11 +270,8 @@ pub fn generate_cuda_kernels(func: &IRFunction) -> Vec<CudaKernel> {
 }
 
 /// Helper to format input operand: dereferences if array, uses raw variable name if scalar
-fn format_input(id: usize, group_inputs: &[usize], type_map: &HashMap<usize, IRType>) -> String {
-    let is_tensor = match type_map.get(&id) {
-        Some(IRType::Tensor(_)) => true,
-        _ => false,
-    };
+fn format_input(id: usize, group_inputs: &[usize], tensor_ids: &HashSet<usize>) -> String {
+    let is_tensor = tensor_ids.contains(&id);
     
     if group_inputs.contains(&id) {
         if is_tensor {
