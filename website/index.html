@@ -520,7 +520,7 @@
               <span>Email & Slack Developer Support</span>
             </li>
           </ul>
-          <button class="price-btn price-btn-primary" onclick="alert('Cognitive agent deployment cloud console is in closed beta. Sign-up details sent to your registered email.')">Start Deploying</button>
+          <button class="price-btn price-btn-primary" id="open-waitlist-btn">Start Deploying</button>
         </div>
 
         <!-- Tier 3: Enterprise -->
@@ -631,6 +631,27 @@
       </div>
     </div>
   </footer>
+
+      <!-- Waitlist Modal Overlay -->
+      <div class="modal-overlay" id="waitlist-modal">
+        <div class="modal-content glass-panel">
+          <button class="modal-close" id="close-waitlist-btn" aria-label="Close modal">&times;</button>
+          <div id="waitlist-form-container">
+            <h3>Join the NEURON Waitlist</h3>
+            <p>Deploy your cognitive agents on our secure, serverless cloud platform. Sign up today to secure your spot and receive <strong>$100 in free compute credits</strong> at launch.</p>
+            <form class="waitlist-form" id="waitlist-form">
+              <input type="email" class="waitlist-input" id="waitlist-email" placeholder="Enter your developer email" required>
+              <button type="submit" class="waitlist-submit-btn" id="waitlist-submit-btn">Join Waitlist</button>
+            </form>
+          </div>
+          <div id="waitlist-success-container" style="display: none;">
+            <div class="success-icon" style="font-size: 3rem; color: var(--accent-success); margin-bottom: 1rem;">✓</div>
+            <h3>You're on the list!</h3>
+            <p>Thank you for signing up. We've reserved your spot and will contact you at <strong id="waitlist-success-email"></strong> as soon as the console opens.</p>
+            <button class="price-btn" id="success-close-btn" style="margin-top: 1.5rem;">Close</button>
+          </div>
+        </div>
+      </div>
 
   <script src="app.js"></script>
 </body>

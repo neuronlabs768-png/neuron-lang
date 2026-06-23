@@ -293,6 +293,97 @@ model LinearNet:
     });
   }
 
+  // 13. Waitlist Modal Handling
+  const waitlistModal = document.getElementById("waitlist-modal");
+  const openWaitlistBtn = document.getElementById("open-waitlist-btn");
+  const closeWaitlistBtn = document.getElementById("close-waitlist-btn");
+  const successCloseBtn = document.getElementById("success-close-btn");
+  const waitlistForm = document.getElementById("waitlist-form");
+  const waitlistEmailInput = document.getElementById("waitlist-email");
+  const waitlistSubmitBtn = document.getElementById("waitlist-submit-btn");
+  const waitlistFormContainer = document.getElementById("waitlist-form-container");
+  const waitlistSuccessContainer = document.getElementById("waitlist-success-container");
+  const waitlistSuccessEmail = document.getElementById("waitlist-success-email");
+
+  function openModal() {
+    if (waitlistModal) {
+      waitlistFormContainer.style.display = "block";
+      waitlistSuccessContainer.style.display = "none";
+      waitlistEmailInput.value = "";
+      waitlistModal.classList.add("active");
+    }
+  }
+
+  function closeModal() {
+    if (waitlistModal) {
+      waitlistModal.classList.remove("active");
+    }
+  }
+
+  if (openWaitlistBtn) {
+    openWaitlistBtn.addEventListener("click", openModal);
+  }
+
+  if (closeWaitlistBtn) {
+    closeWaitlistBtn.addEventListener("click", closeModal);
+  }
+
+  if (successCloseBtn) {
+    successCloseBtn.addEventListener("click", closeModal);
+  }
+
+  if (waitlistModal) {
+    waitlistModal.addEventListener("click", (e) => {
+      if (e.target === waitlistModal) {
+        closeModal();
+      }
+    });
+  }
+
+  if (waitlistForm) {
+    waitlistForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const email = waitlistEmailInput.value;
+      if (!email) return;
+      
+      const originalBtnText = waitlistSubmitBtn.textContent;
+      waitlistSubmitBtn.disabled = true;
+      waitlistSubmitBtn.textContent = "Joining...";
+      waitlistSubmitBtn.style.opacity = "0.7";
+      
+      fetch("https://formsubmit.co/ajax/neuronlabs768@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          _subject: "New NEURON Cloud Platform Waitlist Signup!",
+          _message: `Developer email: ${email} registered for the NEURON SaaS Cloud Beta.`
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        waitlistSuccessEmail.textContent = email;
+        waitlistFormContainer.style.display = "none";
+        waitlistSuccessContainer.style.display = "block";
+      })
+      .catch(error => {
+        console.error("Waitlist submission error:", error);
+        waitlistSuccessEmail.textContent = email;
+        waitlistFormContainer.style.display = "none";
+        waitlistSuccessContainer.style.display = "block";
+      })
+      .finally(() => {
+        waitlistSubmitBtn.disabled = false;
+        waitlistSubmitBtn.textContent = originalBtnText;
+        waitlistSubmitBtn.style.opacity = "1";
+      });
+    });
+  }
+
   // Initialize playground on startup
   initPlayground();
 
