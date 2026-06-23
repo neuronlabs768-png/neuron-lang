@@ -178,6 +178,14 @@ h1, h2, h3, h4 {
   box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
 }
 
+.logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+  object-fit: cover;
+}
+
 .nav-links {
   display: flex;
   gap: 2rem;
