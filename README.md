@@ -60,8 +60,8 @@ model Transformer(d_model: Int, n_heads: Int):
 
 ```bash
 # Build from source (requires Rust 1.70+)
-git clone https://github.com/neuron-lang/neuron
-cd neuron
+git clone https://github.com/neuronlabs768-png/neuron-lang
+cd neuron-lang
 cargo build --release
 
 # Run your first program
@@ -301,8 +301,8 @@ NEURON is in **technical preview**. The core language is complete and tested:
 Requirements: Rust 1.70+ and Cargo.
 
 ```bash
-git clone https://github.com/neuron-lang/neuron
-cd neuron
+git clone https://github.com/neuronlabs768-png/neuron-lang
+cd neuron-lang
 cargo build --release
 ```
 
