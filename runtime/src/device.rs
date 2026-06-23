@@ -12,6 +12,7 @@ use libloading::Library;
 
 thread_local! {
     pub static SIMULATE_CUDA: std::cell::Cell<Option<bool>> = std::cell::Cell::new(None);
+    pub static FORCE_CPU: std::cell::Cell<bool> = std::cell::Cell::new(false);
 }
 
 pub fn set_simulate_cuda(val: bool) {
@@ -20,6 +21,16 @@ pub fn set_simulate_cuda(val: bool) {
 
 pub fn is_simulate_cuda() -> bool {
     SIMULATE_CUDA.with(|s| s.get()).unwrap_or_else(|| std::env::var("NEURON_SIMULATE_CUDA").is_ok())
+}
+
+/// Force all tensor allocations to use CPU Host buffers on the current thread.
+/// Useful for tests that run many iterations and don't need GPU.
+pub fn set_force_cpu(val: bool) {
+    FORCE_CPU.with(|s| s.set(val));
+}
+
+pub fn is_force_cpu() -> bool {
+    FORCE_CPU.with(|s| s.get())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

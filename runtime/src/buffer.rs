@@ -34,7 +34,7 @@ impl Default for Buffer {
 impl Buffer {
     /// Retrieve a buffer of the given size from the pool, or allocate a new one.
     pub fn new(size: usize) -> Self {
-        if crate::device::get_cuda_context().is_some() {
+        if !crate::device::is_force_cpu() && crate::device::get_cuda_context().is_some() {
             Self::new_uvm(size)
         } else {
             let mut inner = None;
@@ -111,7 +111,7 @@ impl Buffer {
 
     /// Wrap an existing vector into a Buffer.
     pub fn from_vec(vec: Vec<f64>) -> Self {
-        if crate::device::get_cuda_context().is_some() {
+        if !crate::device::is_force_cpu() && crate::device::get_cuda_context().is_some() {
             let mut buf = Self::new_uvm(vec.len());
             buf.copy_from_slice(&vec);
             buf

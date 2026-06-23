@@ -5,6 +5,13 @@
 
 use neuron_compiler::compile;
 use neuron_runtime::vm::{Value, VM};
+use neuron_runtime::device::set_force_cpu;
+
+/// Force CPU-only buffer allocations. Endurance tests run 100k+ iterations
+/// and would be prohibitively slow with per-tensor cuMemAllocManaged calls.
+fn force_cpu_mode() {
+    set_force_cpu(true);
+}
 
 const NEURON_TRAIN_SRC: &str = r#"
 fn main() -> Tensor[1]:
@@ -18,6 +25,7 @@ fn main() -> Tensor[1]:
 
 #[test]
 fn test_endurance_100k_iterations() {
+    force_cpu_mode();
     let total_iterations: usize = 100_000;
     let checkpoint_interval: usize = 10_000;
 
@@ -96,6 +104,7 @@ fn test_endurance_100k_iterations() {
 
 #[test]
 fn test_endurance_tape_lifecycle() {
+    force_cpu_mode();
     // Verify tape backward + zero_grad cycles don't corrupt state
     let src = r#"
 fn main() -> Tensor[1]:
