@@ -1,6 +1,7 @@
 # NEURON: Compile-Time Prevention of Temporal, Causal, and Uncertainty Errors in Machine Learning Programs
 
-**Fayo Ibrahim**
+**Fayo Ibrahim**  
+*Neuron Labs*
 
 ---
 
