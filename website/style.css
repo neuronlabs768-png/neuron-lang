@@ -670,6 +670,63 @@ h1, h2, h3, h4 {
   line-height: 1.6;
 }
 
+/* 4.5. Compiler Architecture Flowchart */
+.architecture-section {
+  padding: 100px 0;
+  position: relative;
+}
+
+.arch-flow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.arch-node {
+  flex: 1;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  position: relative;
+  min-height: 220px;
+}
+
+.arch-node-num {
+  font-family: var(--font-code);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(20, 184, 166, 0.4);
+  margin-bottom: 0.75rem;
+}
+
+.arch-node h4 {
+  font-size: 1.15rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+
+.arch-node p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.arch-arrow {
+  color: var(--border-color);
+  animation: glow-pulse-arrow 2s infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+}
+
+@keyframes glow-pulse-arrow {
+  0% { color: var(--border-color); transform: scale(1); }
+  50% { color: var(--accent-teal); transform: scale(1.1); }
+  100% { color: var(--border-color); transform: scale(1); }
+}
+
 /* 5. Framework Comparison Matrix */
 .comparison-section {
   padding: 100px 0;
@@ -846,6 +903,83 @@ h1, h2, h3, h4 {
   line-height: 1.5;
 }
 
+/* 6.5. FAQ Accordion Section */
+.faq-section {
+  padding: 100px 0;
+  position: relative;
+}
+
+.faq-accordion {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faq-item {
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: rgba(13, 11, 22, 0.4);
+  transition: var(--transition-smooth);
+}
+
+.faq-item:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.faq-question {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 1.5rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  outline: none;
+}
+
+.faq-icon {
+  font-size: 1.5rem;
+  color: var(--accent-teal);
+  transition: var(--transition-smooth);
+  line-height: 1;
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+  padding: 0 1.5rem;
+}
+
+.faq-answer p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  padding-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.faq-item.active {
+  background: rgba(138, 43, 226, 0.05);
+  border-color: rgba(138, 43, 226, 0.25);
+}
+
+.faq-item.active .faq-answer {
+  max-height: 1000px;
+  transition: max-height 0.6s cubic-bezier(1, 0, 1, 0);
+}
+
+.faq-item.active .faq-icon {
+  transform: rotate(45deg);
+  color: var(--accent-purple);
+}
+
 /* 7. Licensing & Commercial Section */
 .licensing-section {
   padding: 100px 0;
@@ -1015,6 +1149,24 @@ h1, h2, h3, h4 {
   .optimizations-grid {
     grid-template-columns: 1fr;
   }
+  
+  .arch-flow {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .arch-arrow {
+    transform: rotate(90deg);
+    width: auto;
+    height: 40px;
+    animation: glow-pulse-arrow-rot 2s infinite;
+  }
+}
+
+@keyframes glow-pulse-arrow-rot {
+  0% { color: var(--border-color); transform: rotate(90deg) scale(1); }
+  50% { color: var(--accent-teal); transform: rotate(90deg) scale(1.1); }
+  100% { color: var(--border-color); transform: rotate(90deg) scale(1); }
 }
 
 @media (max-width: 768px) {

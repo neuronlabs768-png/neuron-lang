@@ -26,8 +26,10 @@
         <ul class="nav-links">
           <li><a href="#features">Features</a></li>
           <li><a href="#playground">Playground</a></li>
+          <li><a href="#architecture">Architecture</a></li>
           <li><a href="#comparison">Comparison</a></li>
           <li><a href="#benchmarks">Benchmarks</a></li>
+          <li><a href="#faq">FAQ</a></li>
           <li><a href="#licensing">Licensing</a></li>
           <li>
             <a href="../paper/neuron_paper.md" target="_blank" class="nav-btn nav-btn-secondary">
@@ -193,6 +195,52 @@
     </div>
   </section>
 
+  <!-- NEW 4.5. Compiler Architecture Section -->
+  <section class="architecture-section" id="architecture">
+    <div class="container">
+      <h2 class="section-title">Under the Hood: <span class="gradient-text-teal">How NEURON Works</span></h2>
+      <p class="section-subtitle">A native language compiler workflow, ensuring safety and extreme JIT execution performance.</p>
+      
+      <div class="arch-flow">
+        <div class="arch-node glass-panel">
+          <div class="arch-node-num">01</div>
+          <h4>Source Code</h4>
+          <p>User writes <code>.nr</code> files using differentiable models, matrix multiplication, and causal primitives.</p>
+        </div>
+        
+        <div class="arch-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+
+        <div class="arch-node glass-panel">
+          <div class="arch-node-num">02</div>
+          <h4>Type Checking</h4>
+          <p>Checks tensor sizes, checks lookahead bounds, validates causal observations, and verifies effect flags.</p>
+        </div>
+        
+        <div class="arch-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+
+        <div class="arch-node glass-panel">
+          <div class="arch-node-num">03</div>
+          <h4>AST to IR Lowering</h4>
+          <p>Lowers code into a compiler Control Flow Graph (CFG) with custom basic blocks and tape nodes.</p>
+        </div>
+        
+        <div class="arch-arrow">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+
+        <div class="arch-node glass-panel">
+          <div class="arch-node-num">04</div>
+          <h4>JIT Compiler</h4>
+          <p>Generates host-native C code dynamically compiled into a DLL, linking directly for native-level execution speeds.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- 5. Framework Comparison Matrix -->
   <section class="comparison-section" id="comparison">
     <div class="container">
@@ -326,6 +374,56 @@
           <div class="optim-item">
             <strong>Powi Loop LICM</strong>
             <p>Moves exponentiation calculations outside the element-wise optimization steps, reducing loop evaluation times.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEW 6.5. Interactive FAQ Accordion Section -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <h2 class="section-title">Frequently Asked <span class="gradient-text-purple">Questions</span></h2>
+      <p class="section-subtitle">Find answers to common technical and licensing questions regarding NEURON.</p>
+      
+      <div class="faq-accordion">
+        <div class="faq-item glass-panel">
+          <button class="faq-question">
+            <span>Why not just build a PyTorch or JAX library wrapper?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>A library wrapper cannot verify mathematical properties at the syntax level. In Python, shape errors, temporal lookahead bias, and causal mode confusion only manifest as runtime exceptions or silent numerical calculation discrepancies. By writing a custom compiler in Rust, NEURON validates the structure of your network graph before compiling or executing it.</p>
+          </div>
+        </div>
+
+        <div class="faq-item glass-panel">
+          <button class="faq-question">
+            <span>How do temporal types prevent lookahead bias under the hood?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>NEURON implements temporal direction analysis during type verification. When you construct a <code>Temporal[T, past_to_future]</code> reference, the compiler tracks historical sequences. Any index offset referencing a timestamp index higher than the current index (e.g. <code>.after(k)</code>) is caught by the compiler type-checker and rejected with a <code>TemporalLeak</code> compilation error.</p>
+          </div>
+        </div>
+
+        <div class="faq-item glass-panel">
+          <button class="faq-question">
+            <span>What are the exact hardware and OS requirements?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>The compiler (<code>neuronc</code>) is written in Rust and runs on Windows, macOS, and Linux. The JIT compiler requires <code>clang</code> or another host compiler to compile the dynamically linked native modules. Native code generation targets standard x86_64 AVX2 instruction sets.</p>
+          </div>
+        </div>
+
+        <div class="faq-item glass-panel">
+          <button class="faq-question">
+            <span>Why did you choose the Business Source License (BSL 1.1)?</span>
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>The BSL allows 100% free use of the compiler and runtime for development, testing, research, and non-production deployments. For proprietary commercial workloads (such as algorithmic trading models), it requires a commercial license. This ensures sustainable funding for the development team while guaranteeing that the code becomes completely open-source (Apache 2.0) on January 1, 2030.</p>
           </div>
         </div>
       </div>
