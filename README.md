@@ -310,6 +310,13 @@ The `neuronc` binary will be at `target/release/neuronc`.
 
 ---
 
+## Contact
+
+For commercial inquiries, licensing questions, or support requests, please contact:
+📩 [neuronlabs768@gmail.com](mailto:neuronlabs768@gmail.com)
+
+---
+
 ## License
 
 This project is licensed under the Business Source License 1.1 (BSL 1.1) - see the [LICENSE](LICENSE) file for details.
