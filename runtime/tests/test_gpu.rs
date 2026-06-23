@@ -18,11 +18,11 @@ fn test_fused_math(x: Tensor[2, 2]) -> Tensor[2, 2]:
     let func = compile_res.ir.functions.iter().find(|f| f.name == "test_fused_math").unwrap();
 
     // 1. Verify fused groups are detected
-    let groups = find_fused_groups(func);
+    let groups = find_fused_groups(func, &[]);
     assert!(!groups.is_empty(), "Expected to find at least one fused operator group");
     
     // 2. Generate CUDA kernels
-    let kernels = generate_cuda_kernels(func);
+    let kernels = generate_cuda_kernels(func, &[]);
     assert_eq!(kernels.len(), 1, "Expected exactly 1 fused kernel");
     
     let kernel = &kernels[0];

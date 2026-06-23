@@ -406,7 +406,7 @@ impl VM {
             locals: HashMap::new(),
             ssa_values: HashMap::new(),
             return_addr: None,
-            fused_groups: build_fused_groups_cache(&func),
+            fused_groups: build_fused_groups_cache(&func, &self.functions.values().cloned().collect::<Vec<_>>()),
             fused_skipped_ids: std::collections::HashSet::new(),
         };
 
@@ -507,7 +507,7 @@ impl VM {
                             locals: HashMap::new(),
                             ssa_values: HashMap::new(),
                             return_addr: Some((current_func_name, current_block_id, node.id)),
-                            fused_groups: build_fused_groups_cache(&callee),
+                            fused_groups: build_fused_groups_cache(&callee, &self.functions.values().cloned().collect::<Vec<_>>()),
                             fused_skipped_ids: std::collections::HashSet::new(),
                         };
                         
@@ -1513,7 +1513,8 @@ impl VM {
             return;
         }
         
-        let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func);
+        let all_funcs: Vec<IRFunction> = self.functions.values().cloned().collect();
+        let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func, &all_funcs);
         for kernel in &kernels {
             println!("[NEURON-DEBUG] generate_cuda_kernels: func={}, name={}, inputs={:?}, input_is_tensor={:?}, code:\n{}",
                      func.name, kernel.name, kernel.inputs, kernel.input_is_tensor, kernel.code);
@@ -1553,7 +1554,8 @@ impl VM {
             self.call_stack[frame_idx].fused_skipped_ids.insert(node.id);
         }
         
-        let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func);
+        let all_funcs: Vec<IRFunction> = self.functions.values().cloned().collect();
+        let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func, &all_funcs);
         let kernel = kernels.iter().find(|k| k.name == kernel_name)
             .ok_or_else(|| format!("Kernel {} metadata not found", kernel_name))?;
             
@@ -1773,9 +1775,9 @@ fn cuda_error_string(ctx: &crate::device::CudaContext, code: u32) -> String {
     }
 }
 
-fn build_fused_groups_cache(func: &IRFunction) -> HashMap<ValueId, (usize, neuron_compiler::cuda_codegen::FusedGroup)> {
+fn build_fused_groups_cache(func: &IRFunction, all_funcs: &[IRFunction]) -> HashMap<ValueId, (usize, neuron_compiler::cuda_codegen::FusedGroup)> {
     let mut map = HashMap::new();
-    let groups = neuron_compiler::cuda_codegen::find_fused_groups(func);
+    let groups = neuron_compiler::cuda_codegen::find_fused_groups(func, all_funcs);
     for (g_idx, group) in groups.into_iter().enumerate() {
         if !group.is_empty() {
             let first_id = group.instructions[0].id;
