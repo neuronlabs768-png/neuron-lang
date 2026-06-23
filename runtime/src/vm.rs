@@ -1584,6 +1584,14 @@ impl VM {
             }
         }
         
+        // If the entire group is only Const nodes, all values are already
+        // materialized by the pre-pass above. Skip kernel launch to avoid
+        // overwriting scalar values with a Tensor output.
+        let all_const = group.instructions.iter().all(|n| matches!(n.op, IROp::Const(_)));
+        if all_const {
+            return Ok(());
+        }
+        
         if let Some(ctx) = crate::device::get_cuda_context() {
             let k_func = self.cuda_kernels.get(&kernel_name)
                 .ok_or_else(|| format!("CUDA kernel {} not loaded", kernel_name))?;
