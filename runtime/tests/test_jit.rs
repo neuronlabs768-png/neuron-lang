@@ -9,7 +9,8 @@ fn run_jit(src: &str) -> Result<Value, String> {
         .map_err(|e| format!("{:?}", e))?;
     
     // 2. Transpile to Rust code
-    let rust_code = Transpiler::transpile(&compile_res.ir);
+    let mut rust_code = Transpiler::transpile(&compile_res.ir);
+    rust_code = format!("#![allow(warnings)]\n{}", rust_code);
     
     // 3. Setup temporary Cargo project
     let temp_dir = std::env::temp_dir().join(format!(

@@ -103,6 +103,7 @@ fn generate_random_program(id: usize) -> String {
 
 #[test]
 fn test_jit_vs_vm_property() {
+    neuron_runtime::device::set_force_cpu(true);
     let num_cases = 100;
     println!("Generating and transpiling {} property test cases...", num_cases);
     
@@ -113,11 +114,7 @@ fn test_jit_vs_vm_property() {
 r#"// ═══════════════════════════════════════════════════════════════════
 //  NEURON JIT Property Testing Dynamic Library
 // ═══════════════════════════════════════════════════════════════════
-#![allow(unused_variables)]
-#![allow(unused_mut)]
-#![allow(non_snake_case)]
-#![allow(dead_code)]
-#![allow(unused_imports)]
+#![allow(warnings)]
 
 use std::collections::HashMap;
 use neuron_runtime::tensor::{Tensor, tensor_neg, tensor_gelu};

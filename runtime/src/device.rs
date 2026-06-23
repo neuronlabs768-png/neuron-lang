@@ -483,7 +483,7 @@ static CUDA_CONTEXT: OnceLock<Option<CudaContext>> = OnceLock::new();
 
 /// Retrieve reference to initialized dynamic CUDA context.
 pub fn get_cuda_context() -> Option<&'static CudaContext> {
-    if is_simulate_cuda() {
+    if is_force_cpu() || is_simulate_cuda() {
         return None;
     }
     let context = CUDA_CONTEXT.get_or_init(|| {

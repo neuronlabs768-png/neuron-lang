@@ -1708,7 +1708,20 @@ impl VM {
             }
             
             output_tensor.data.prefetch_to_host();
-            self.call_stack[frame_idx].ssa_values.insert(output_id, Value::Tensor(output_tensor));
+            
+            // Execute nodes on CPU to populate tape and intermediate values for autograd
+            let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
+            for node in &group.instructions {
+                let res = self.exec_node(node, &local_ssa)?;
+                local_ssa.insert(node.id, res.clone());
+                self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+            }
+            
+            // Swap the CPU-computed tensor's buffer with the GPU-computed one, preserving the tape ID
+            if let Some(Value::Tensor(ref mut cpu_tensor)) = self.call_stack[frame_idx].ssa_values.get_mut(&output_id) {
+                cpu_tensor.data = output_tensor.data;
+            }
+            
             self.effect_log.push(format!("cuda_exec_{}", g_idx));
             
             Ok(())

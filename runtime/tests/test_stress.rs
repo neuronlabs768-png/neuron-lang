@@ -12,7 +12,8 @@ use rayon::prelude::*;
 fn run_jit(src: &str) -> Result<Value, String> {
     let compile_res = compile(src, "test_stress_jit_input.nr")
         .map_err(|e| format!("{:?}", e))?;
-    let rust_code = Transpiler::transpile(&compile_res.ir);
+    let mut rust_code = Transpiler::transpile(&compile_res.ir);
+    rust_code = format!("#![allow(warnings)]\n{}", rust_code);
     
     let temp_dir = std::env::temp_dir().join(format!(
         "neuron_stress_jit_{}",
