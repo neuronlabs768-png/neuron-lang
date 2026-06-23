@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Read the formal academic research paper describing NEURON, a statically typed, natively differentiable programming language for trustworthy AI.">
+  <meta name="keywords" content="NEURON paper, research paper, compiler, type system, temporal logic, causal SCM, uncertainty propagation, differentiable programming">
+  <title>NEURON Paper — Technical Specification & Evaluation</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- KaTeX CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <!-- KaTeX JS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <!-- Marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="container navbar-container">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">N</div>
+        <span>NEURON</span>
+      </a>
+      <nav>
+        <ul class="nav-links" id="nav-links">
+          <li><a href="index.html#features">Features</a></li>
+          <li><a href="index.html#playground">Playground</a></li>
+          <li><a href="index.html#architecture">Architecture</a></li>
+          <li><a href="index.html#comparison">Comparison</a></li>
+          <li><a href="index.html#benchmarks">Benchmarks</a></li>
+          <li><a href="index.html#faq">FAQ</a></li>
+          <li><a href="index.html#licensing">Licensing</a></li>
+          <li>
+            <a href="neuron_arxiv_submission.zip" download class="nav-btn nav-btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Download Sources
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/neuronlabs768-png/neuron-lang" target="_blank" class="nav-btn nav-btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+              GitHub
+            </a>
+          </li>
+        </ul>
+        <button class="nav-toggle" id="nav-toggle-btn" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Paper Layout -->
+  <main class="container">
+    <div class="paper-layout">
+      <!-- Sidebar / Table of Contents -->
+      <aside class="paper-sidebar">
+        <h3>Contents</h3>
+        <ul class="paper-toc-list" id="paper-toc">
+          <!-- Populated dynamically via JS -->
+        </ul>
+      </aside>
+
+      <!-- Scientific Paper Reader -->
+      <article class="paper-reader">
+        <div class="paper-body" id="paper-content">
+          <div style="text-align: center; padding: 3rem 0;">
+            <p>Loading research paper...</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-info">
+          <a href="index.html" class="logo">
+            <div class="logo-icon">N</div>
+            <span>NEURON</span>
+          </a>
+          <p>The type-safe programming language for trustworthy AI.</p>
+        </div>
+        <ul class="footer-links">
+          <li><a href="index.html#features">Features</a></li>
+          <li><a href="index.html#playground">Playground</a></li>
+          <li><a href="index.html#comparison">Comparison</a></li>
+          <li><a href="index.html#benchmarks">Benchmarks</a></li>
+          <li><a href="index.html#licensing">Licensing</a></li>
+          <li><a href="https://github.com/neuronlabs768-png/neuron-lang" target="_blank">GitHub</a></li>
+          <li><a href="paper.html">Paper Draft</a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Fayo Ibrahim & the NEURON Contributors. Licensed under BSL 1.1 (converting to Apache 2.0).</p>
+        <p>Contact: <a href="mailto:neuronlabs768@gmail.com" style="color: var(--text-main); text-decoration: underline;">neuronlabs768@gmail.com</a></p>
+        <p>Built with Vanilla HTML/CSS/JS</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Script for parsing and rendering paper -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const contentEl = document.getElementById("paper-content");
+      const tocEl = document.getElementById("paper-toc");
+      const navToggleBtn = document.getElementById("nav-toggle-btn");
+      const navLinks = document.getElementById("nav-links");
+
+      // Mobile Menu Toggle
+      navToggleBtn.addEventListener("click", () => {
+        navLinks.style.display = navLinks.style.display === "flex" ? "none" : "flex";
+        navToggleBtn.classList.toggle("active");
+      });
+
+      // Math parsing state
+      const mathBlocks = [];
+
+      function preprocessMath(text) {
+        // 1. Extract display math blocks: $$ ... $$
+        let processed = text.replace(/\$\$\s*([\s\S]+?)\s*\$\$/g, (match, formula) => {
+          const id = `%%MATH_DISPLAY_${mathBlocks.length}%%`;
+          mathBlocks.push({ id, formula, display: true });
+          return id;
+        });
+        
+        // 2. Extract inline math blocks: $ ... $
+        processed = processed.replace(/\$([^$\n]+?)\$/g, (match, formula) => {
+          const id = `%%MATH_INLINE_${mathBlocks.length}%%`;
+          mathBlocks.push({ id, formula, display: false });
+          return id;
+        });
+        
+        return processed;
+      }
+
+      function postprocessMath(html) {
+        let result = html;
+        mathBlocks.forEach(item => {
+          try {
+            const rendered = katex.renderToString(item.formula, {
+              displayMode: item.display,
+              throwOnError: false
+            });
+            // Replace exact matches of the ID placeholder
+            result = result.replace(new RegExp(item.id, 'g'), rendered);
+          } catch (err) {
+            console.error("KaTeX error for:", item.formula, err);
+            result = result.replace(new RegExp(item.id, 'g'), `<span class="math-error">${item.formula}</span>`);
+          }
+        });
+        return result;
+      }
+
+      // Fetch and render the paper
+      fetch("neuron_paper.md")
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load paper: ${response.status} ${response.statusText}`);
+          }
+          return response.text();
+        })
+        .then(markdownText => {
+          // Preprocess math formulas
+          const preprocessed = preprocessMath(markdownText);
+          
+          // Parse markdown to HTML
+          const rawHtml = marked.parse(preprocessed);
+          
+          // Postprocess math placeholders to rendered HTML
+          const finalHtml = postprocessMath(rawHtml);
+          
+          // Set to DOM
+          contentEl.innerHTML = finalHtml;
+          
+          // Generate TOC dynamically
+          buildTOC();
+          
+          // Add copy buttons to code blocks
+          addCodeCopyButtons();
+        })
+        .catch(err => {
+          console.error("Error displaying paper:", err);
+          contentEl.innerHTML = `
+            <div style="text-align: center; padding: 3rem 0; color: var(--accent-error);">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <h3>Failed to load scientific paper</h3>
+              <p style="margin-top: 0.5rem; opacity: 0.8;">${err.message}</p>
+              <a href="index.html" class="nav-btn nav-btn-primary" style="display: inline-flex; margin-top: 1.5rem; text-decoration: none;">Return to Home</a>
+            </div>
+          `;
+        });
+
+      // Build Table of Contents dynamically
+      function buildTOC() {
+        const headings = contentEl.querySelectorAll("h2, h3");
+        tocEl.innerHTML = "";
+        
+        if (headings.length === 0) {
+          tocEl.innerHTML = '<li class="paper-toc-item"><span class="paper-toc-link">No sections found</span></li>';
+          return;
+        }
+
+        headings.forEach((heading, idx) => {
+          // Create anchor ID if it doesn't exist
+          const id = heading.textContent.toLowerCase()
+            .replace(/[^\w\s-]/g, "") // Remove special chars
+            .replace(/\s+/g, "-")      // Replace spaces with hyphens
+            .trim() + `-${idx}`;
+          heading.id = id;
+
+          // Create TOC list item
+          const li = document.createElement("li");
+          li.className = "paper-toc-item";
+          if (heading.tagName === "H3") {
+            li.classList.add("paper-toc-subitem");
+          }
+
+          const a = document.createElement("a");
+          a.href = `#${id}`;
+          a.className = "paper-toc-link";
+          a.textContent = heading.textContent.replace(/^\d+(\.\d+)*\s+/, ""); // Remove section numbers if present in text
+          a.dataset.targetId = id;
+
+          li.appendChild(a);
+          tocEl.appendChild(li);
+        });
+
+        // Setup Scrollspy
+        setupScrollspy();
+      }
+
+      // Setup Scrollspy
+      function setupScrollspy() {
+        const tocLinks = tocEl.querySelectorAll(".paper-toc-link");
+        const headings = Array.from(contentEl.querySelectorAll("h2, h3"));
+        
+        function scrollSpy() {
+          const scrollPos = window.scrollY + 120; // Offset for sticky navbar
+          
+          let activeId = null;
+          for (let i = 0; i < headings.length; i++) {
+            const heading = headings[i];
+            if (heading.offsetTop <= scrollPos) {
+              activeId = heading.id;
+            } else {
+              break;
+            }
+          }
+
+          tocLinks.forEach(link => {
+            if (link.dataset.targetId === activeId) {
+              link.classList.add("active");
+            } else {
+              link.classList.remove("active");
+            }
+          });
+        }
+
+        window.addEventListener("scroll", scrollSpy);
+        scrollSpy(); // Initial call
+      }
+
+      // Add copy buttons to pre/code blocks
+      function addCodeCopyButtons() {
+        const preBlocks = contentEl.querySelectorAll("pre");
+        preBlocks.forEach(pre => {
+          pre.style.position = "relative";
+          
+          const button = document.createElement("button");
+          button.className = "copy-btn";
+          button.style.position = "absolute";
+          button.style.top = "10px";
+          button.style.right = "10px";
+          button.style.padding = "4px 8px";
+          button.style.fontSize = "0.75rem";
+          button.style.background = "rgba(255, 255, 255, 0.05)";
+          button.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+          button.style.borderRadius = "4px";
+          button.style.cursor = "pointer";
+          button.style.color = "var(--text-muted)";
+          button.style.display = "flex";
+          button.style.alignItems = "center";
+          button.style.gap = "4px";
+          button.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Copy
+          `;
+
+          button.addEventListener("click", () => {
+            const code = pre.querySelector("code").textContent;
+            navigator.clipboard.writeText(code).then(() => {
+              button.innerHTML = `
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="stroke: var(--accent-success);"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span style="color: var(--accent-success);">Copied!</span>
+              `;
+              setTimeout(() => {
+                button.innerHTML = `
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copy
+                `;
+              }, 2000);
+            });
+          });
+
+          pre.appendChild(button);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
