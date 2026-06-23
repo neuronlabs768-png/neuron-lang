@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NEURON is a statically typed, natively differentiable programming language. It catches temporal leaks, causal confusion, and uncertainty propagation errors at compile time.">
+  <meta name="keywords" content="NEURON, programming language, machine learning, compiler, automatic differentiation, temporal type system, causal inference, do-calculus, BSL license">
+  <title>NEURON — The Type-Safe Programming Language for Trustworthy AI</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="NEURON — The Type-Safe Programming Language for Trustworthy AI">
+  <meta property="og:description" content="Natively differentiable programming language that prevents AI bugs at compile time using advanced temporal and causal type systems.">
+  <meta property="og:type" content="website">
+</head>
+<body>
+
+  <!-- 1. Header & Navigation -->
+  <header class="navbar">
+    <div class="container navbar-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">N</div>
+        <span>NEURON</span>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#playground">Playground</a></li>
+          <li><a href="#comparison">Comparison</a></li>
+          <li><a href="#licensing">Licensing</a></li>
+          <li>
+            <a href="https://arxiv.org/abs/2406.XXXXX" target="_blank" class="nav-btn nav-btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Paper
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/neuron-lang/neuron" target="_blank" class="nav-btn nav-btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+              GitHub
+            </a>
+          </li>
+        </ul>
+        <button class="nav-toggle" id="nav-toggle-btn" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 2. Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        <span>NEURON v0.1.0 Released</span>
+      </div>
+      <h1>The language that makes <br><span class="gradient-text-purple">AI think differently.</span></h1>
+      <p class="lead">Every existing ML framework bolts gradients onto general-purpose languages as an afterthought. NEURON integrates automatic differentiation, temporal safety, and causal do-calculus directly into the type system.</p>
+      
+      <div class="hero-actions">
+        <a href="#playground" class="hero-btn hero-btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Interactive Playground
+        </a>
+        <a href="https://github.com/neuron-lang/neuron" target="_blank" class="hero-btn hero-btn-secondary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          Clone & Build
+        </a>
+      </div>
+
+      <div class="hero-paper">
+        <a href="https://arxiv.org/abs/2406.XXXXX" target="_blank" class="arxiv-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Read the preprint on arXiv (cs.PL / cs.AI)
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Playground Section -->
+  <section class="playground-section" id="playground">
+    <div class="container">
+      <h2 class="section-title">Experience <span class="gradient-text-teal">Type Safety</span> In Action</h2>
+      <p class="section-subtitle">Select a tab below to load standard examples in the NEURON compiler, then click <strong>Compile & Run</strong> to simulate compiler execution and runtime verification.</p>
+
+      <div class="playground">
+        <!-- Editor Column -->
+        <div class="editor-card glass-panel">
+          <div class="editor-header">
+            <div class="editor-tabs" id="editor-tabs">
+              <button class="tab-btn active" data-tab="temporal">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Temporal Leak
+              </button>
+              <button class="tab-btn" data-tab="causal">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
+                Causal Intervention
+              </button>
+              <button class="tab-btn" data-tab="uncertainty">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                Uncertainty Check
+              </button>
+              <button class="tab-btn" data-tab="autograd">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                Autograd Loop
+              </button>
+            </div>
+            <div class="editor-actions">
+              <button class="run-btn" id="run-btn">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Compile & Run
+              </button>
+            </div>
+          </div>
+          <div class="editor-body">
+            <div class="line-numbers" id="line-numbers">
+              <!-- JS Populated -->
+            </div>
+            <div class="code-container" id="code-container">
+              <!-- Code block wrappers populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Column -->
+        <div class="terminal-card glass-panel">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <div class="terminal-dots">
+                <span class="dot-red"></span>
+                <span class="dot-yellow"></span>
+                <span class="dot-green"></span>
+              </div>
+              <span>terminal — neuronc</span>
+            </div>
+          </div>
+          <div class="terminal-body" id="terminal-body">
+            <div class="term-line"><span class="term-prompt">visitor@neuron:~$</span> neuronc check examples/demo_million_dollar_bug.nr</div>
+            <div class="term-line">Ready to compile. Click "Compile & Run" above to execute.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Features Section -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <h2 class="section-title">Designed for <span class="gradient-text-purple">ML Safety & Correctness</span></h2>
+      <p class="section-subtitle">No more chasing silent numerical bugs, data leakage, or invalid causal claims through thousands of log lines.</p>
+      
+      <div class="features-grid">
+        <div class="feature-card glass-panel">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3>Temporal Types</h3>
+          <p>Prevents lookahead bias at compile time. Data variables carry temporal direction properties (e.g., <code>past_to_future</code>), and any index access into future timestamps is rejected by the type checker.</p>
+        </div>
+
+        <div class="feature-card glass-panel">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3>Causal Inference Primitives</h3>
+          <p>Treats do-calculus as a first-class feature. Distinguishes observational conditioning <code>observe()</code> from intervention <code>intervene()</code> to prevent correlation/causation fallacies at compile time.</p>
+        </div>
+
+        <div class="feature-card glass-panel">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+          <h3>First-Class Uncertainty</h3>
+          <p>Supports <code>Uncertain[Tensor]</code> types. Uncertainty bounds are propagated through mathematical operations automatically. The compiler issues a warning if confidence parameters are not explicitly checked.</p>
+        </div>
+
+        <div class="feature-card glass-panel">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          </div>
+          <h3>Natively Differentiable</h3>
+          <p>No libraries required. Functions are automatically differentiable, utilizing a tape-based reverse-mode autograd engine built directly into the compiler AST lowerer and VM backend.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Framework Comparison Matrix -->
+  <section class="comparison-section" id="comparison">
+    <div class="container">
+      <h2 class="section-title">NEURON vs. <span class="gradient-text-teal">Traditional Frameworks</span></h2>
+      <p class="section-subtitle">How compile-time guarantees replace tedious debugging loops.</p>
+      
+      <div class="comparison-table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th class="feat-column">Safety Check</th>
+              <th class="comp-col-competitor">PyTorch</th>
+              <th class="comp-col-competitor">JAX</th>
+              <th class="comp-col-neuron">NEURON</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feat-column">Tensor Shape Verification</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> Runtime Crash</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> JIT Compile-time</td>
+              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Compile-time</td>
+            </tr>
+            <tr>
+              <td class="feat-column">Temporal Lookahead Prevention</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Silent Bug)</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Silent Bug)</td>
+              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Type-check Error</td>
+            </tr>
+            <tr>
+              <td class="feat-column">Causal Intervention Checking</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> Manual tracking</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> Manual tracking</td>
+              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Type-check Error</td>
+            </tr>
+            <tr>
+              <td class="feat-column">Uncertainty Propagation Warnings</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Library only)</td>
+              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Library only)</td>
+              <td class="comp-col-neuron"><span class="check-green">✓</span> Compiler Warning</td>
+            </tr>
+            <tr>
+              <td class="feat-column">Gradient Computations</td>
+              <td class="comp-col-competitor"><span class="check-green">✓</span> Library (Tape-based)</td>
+              <td class="comp-col-competitor"><span class="check-green">✓</span> JIT Transformation</td>
+              <td class="comp-col-neuron"><span class="check-green">✓</span> Native Syntax (grad)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Licensing & Commercial Section -->
+  <section class="licensing-section" id="licensing">
+    <div class="container">
+      <div class="licensing-card glass-panel">
+        <div class="licensing-header">
+          <h2>Business Source License <span class="gradient-text-purple">1.1</span></h2>
+          <p>NEURON balances developer freedom with open-source sustainability using the Business Source License 1.1 (BSL 1.1).</p>
+        </div>
+        
+        <div class="licensing-grid">
+          <div class="license-box license-box-free">
+            <h3>Non-Production & Open Source</h3>
+            <ul>
+              <li><strong>100% Free</strong>: Full access to the compiler, JIT, interpreter, and stdlib.</li>
+              <li><strong>Educational & Research Use</strong>: Completely unrestricted for academic papers, prototyping, and personal learning.</li>
+              <li><strong>Eventual Open Source</strong>: On January 1, 2030, this code automatically converts to the permissive <strong>Apache License, Version 2.0</strong>.</li>
+            </ul>
+          </div>
+
+          <div class="license-box license-box-commercial">
+            <h3>Enterprise Production</h3>
+            <ul>
+              <li><strong>Commercial License Required</strong>: If you deploy NEURON inside proprietary trading engines, automated production pipelines, or clinical environments.</li>
+              <li><strong>Protects the Moat</strong>: Prevents larger firms from repackaging the JIT compiler into proprietary wrappers without contributing back.</li>
+              <li><strong>Direct Support Options</strong>: Commercial license agreements include direct developer support and custom GPU backend acceleration.</li>
+            </ul>
+          </div>
+        </div>
+        
+        <p class="license-footnote">
+          Read the complete parameters and conditions in the official <a href="LICENSE" target="_blank">LICENSE file</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-info">
+          <a href="#" class="logo">
+            <div class="logo-icon">N</div>
+            <span>NEURON</span>
+          </a>
+          <p>The type-safe programming language for trustworthy AI.</p>
+        </div>
+        <ul class="footer-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#playground">Playground</a></li>
+          <li><a href="#comparison">Comparison</a></li>
+          <li><a href="#licensing">Licensing</a></li>
+          <li><a href="https://github.com/neuron-lang/neuron" target="_blank">GitHub</a></li>
+          <li><a href="https://arxiv.org/abs/2406.XXXXX" target="_blank">arXiv Preprint</a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Fayo Ibrahim & the NEURON Contributors. Licensed under BSL 1.1 (converting to Apache 2.0).</p>
+        <p>Built with Vanilla HTML/CSS/JS</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
