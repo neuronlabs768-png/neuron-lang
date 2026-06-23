@@ -22,7 +22,11 @@ fn run_jit(src: &str) -> Result<Value, String> {
     let src_dir = temp_dir.join("src");
     std::fs::create_dir_all(&src_dir).unwrap();
     
-    let cargo_toml_content = r#"[package]
+    // Resolve the runtime crate path dynamically (works on Windows and Linux)
+    let runtime_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .to_string_lossy()
+        .replace('\\', "/");
+    let cargo_toml_content = format!(r#"[package]
 name = "neuron_jit_test"
 version = "0.1.0"
 edition = "2021"
@@ -31,8 +35,8 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-neuron-runtime = { path = "C:/Users/ADMIN/neuron-lang/runtime" }
-"#;
+neuron-runtime = {{ path = "{}" }}
+"#, runtime_path);
     std::fs::write(temp_dir.join("Cargo.toml"), cargo_toml_content).unwrap();
     std::fs::write(src_dir.join("lib.rs"), rust_code).unwrap();
     
