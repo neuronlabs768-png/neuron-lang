@@ -1514,6 +1514,10 @@ impl VM {
         }
         
         let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func);
+        for kernel in &kernels {
+            println!("[NEURON-DEBUG] generate_cuda_kernels: func={}, name={}, inputs={:?}, input_is_tensor={:?}, code:\n{}",
+                     func.name, kernel.name, kernel.inputs, kernel.input_is_tensor, kernel.code);
+        }
         if let Some(ctx) = crate::device::get_cuda_context() {
             for kernel in kernels {
                 match ctx.compile_to_ptx(&kernel.name, &kernel.code) {
