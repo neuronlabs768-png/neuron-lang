@@ -207,6 +207,9 @@ COMMANDS:
 | `transformer.nr` | Multi-head attention transformer model |
 | `agi_model.nr` | Full AGI agent architecture |
 | `stress_test.nr` | Compiler stress test with complex programs |
+| `advanced_data_pipeline.nr` | Type-safe, lookahead-free time-series feature engineering |
+| `advanced_causal_rl.nr` | Causal RL policy using SCM observe/intervene do-calculus |
+| `advanced_uncertainty_routing.nr` | Confidence-aware cascade model routing under compile-time checks |
 
 ---
 
