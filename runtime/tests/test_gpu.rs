@@ -69,15 +69,20 @@ fn test_gpu_device_fallback_routing() {
     func.entry = 0;
     prog.functions.push(func);
     
-    // 2. Run with CUDA unavailable (Standard CPU Fallback)
+    // 2. Run with CUDA unavailable (Standard CPU Fallback or real GPU execution)
     std::env::remove_var("NEURON_SIMULATE_CUDA");
     set_simulate_cuda(false);
     let mut vm = VM::new();
     vm.load(&prog);
     let res = vm.run_main().unwrap();
     assert_eq!(res.as_float(), 3.14);
-    assert!(vm.effect_log.contains(&"fallback_to_cpu_cuda_0".to_string()));
-    assert!(!vm.effect_log.contains(&"cuda_exec_0".to_string()));
+    if neuron_runtime::device::get_cuda_context().is_some() {
+        assert!(vm.effect_log.contains(&"cuda_exec_0".to_string()));
+        assert!(!vm.effect_log.contains(&"fallback_to_cpu_cuda_0".to_string()));
+    } else {
+        assert!(vm.effect_log.contains(&"fallback_to_cpu_cuda_0".to_string()));
+        assert!(!vm.effect_log.contains(&"cuda_exec_0".to_string()));
+    }
     
     // 3. Run with CUDA simulated (Device Routing)
     std::env::set_var("NEURON_SIMULATE_CUDA", "1");
@@ -138,7 +143,7 @@ fn main() -> Tensor[2, 2]:
     assert!(vm.effect_log.iter().any(|e| e.contains("cuda_exec_0")));
     assert!(!vm.effect_log.iter().any(|e| e.contains("fallback_to_cpu_cuda_0")));
 
-    // 2. Run in standard fallback mode (CPU)
+    // 2. Run in standard fallback mode (CPU fallback or real GPU execution)
     std::env::remove_var("NEURON_SIMULATE_CUDA");
     set_simulate_cuda(false);
     let mut vm_cpu = VM::new();
@@ -147,9 +152,14 @@ fn main() -> Tensor[2, 2]:
     let t_cpu = res_cpu.as_tensor().unwrap();
     assert!((t_cpu.data[0] - 1.341345).abs() < 1e-4);
     
-    // Verify that fallback was logged
-    assert!(vm_cpu.effect_log.iter().any(|e| e.contains("fallback_to_cpu_cuda_0")));
-    assert!(!vm_cpu.effect_log.iter().any(|e| e.contains("cuda_exec_0")));
+    // Verify that fallback was logged on CPU-only machines, or real execution on GPU machines
+    if neuron_runtime::device::get_cuda_context().is_some() {
+        assert!(vm_cpu.effect_log.iter().any(|e| e.contains("cuda_exec_0")));
+        assert!(!vm_cpu.effect_log.iter().any(|e| e.contains("fallback_to_cpu_cuda_0")));
+    } else {
+        assert!(vm_cpu.effect_log.iter().any(|e| e.contains("fallback_to_cpu_cuda_0")));
+        assert!(!vm_cpu.effect_log.iter().any(|e| e.contains("cuda_exec_0")));
+    }
     
     // Cleanup
     std::env::remove_var("NEURON_SIMULATE_CUDA");
