@@ -59,11 +59,118 @@ pub fn get_tensor_ids(func: &IRFunction) -> HashSet<usize> {
             set.insert(param.id);
         }
     }
-    for block in &func.blocks {
-        for node in &block.instructions {
-            if is_tensor_type(&node.output_type) || !node.output_shape.is_empty() {
-                set.insert(node.id);
+    
+    // Run iterative propagation pass to handle forward and backward dependencies
+    for _ in 0..5 {
+        let mut changed = false;
+        for block in &func.blocks {
+            for node in &block.instructions {
+                // Forward rules:
+                let mut is_tensor = is_tensor_type(&node.output_type) || !node.output_shape.is_empty();
+                
+                if !is_tensor {
+                    match &node.op {
+                        IROp::Zeros(_)
+                        | IROp::Ones(_)
+                        | IROp::Glorot(_)
+                        | IROp::Randn(_)
+                        | IROp::MatMul
+                        | IROp::Linear { .. }
+                        | IROp::Conv2D { .. }
+                        | IROp::LayerNorm { .. }
+                        | IROp::Embedding { .. }
+                        | IROp::Softmax { .. }
+                        | IROp::Sum { .. }
+                        | IROp::Mean { .. }
+                        | IROp::Max { .. }
+                        | IROp::Min { .. }
+                        | IROp::Reshape(_)
+                        | IROp::Transpose(_, _)
+                        | IROp::Slice(_)
+                        | IROp::Concat { .. } => {
+                            is_tensor = true;
+                        }
+                        IROp::Add
+                        | IROp::Sub
+                        | IROp::Mul
+                        | IROp::Div
+                        | IROp::Neg
+                        | IROp::ReLU
+                        | IROp::GeLU
+                        | IROp::Sigmoid
+                        | IROp::Tanh
+                        | IROp::Dropout { .. }
+                        | IROp::Index => {
+                            // If any input is a tensor, output is a tensor
+                            if node.inputs.iter().any(|i| set.contains(i)) {
+                                is_tensor = true;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                
+                if is_tensor {
+                    if set.insert(node.id) {
+                        changed = true;
+                    }
+                }
+                
+                // Backward rules:
+                let output_is_tensor = set.contains(&node.id);
+                match &node.op {
+                    IROp::MatMul
+                    | IROp::Linear { .. }
+                    | IROp::Conv2D { .. }
+                    | IROp::LayerNorm { .. }
+                    | IROp::Embedding { .. }
+                    | IROp::Softmax { .. }
+                    | IROp::Sum { .. }
+                    | IROp::Mean { .. }
+                    | IROp::Max { .. }
+                    | IROp::Min { .. }
+                    | IROp::Reshape(_)
+                    | IROp::Transpose(_, _)
+                    | IROp::Slice(_)
+                    | IROp::Concat { .. } => {
+                        for &input in &node.inputs {
+                            if set.insert(input) {
+                                changed = true;
+                            }
+                        }
+                    }
+                    IROp::Add
+                    | IROp::Sub
+                    | IROp::Mul
+                    | IROp::Div
+                    | IROp::Neg
+                    | IROp::ReLU
+                    | IROp::GeLU
+                    | IROp::Sigmoid
+                    | IROp::Tanh
+                    | IROp::Dropout { .. } => {
+                        if output_is_tensor {
+                            for &input in &node.inputs {
+                                if set.insert(input) {
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                    IROp::Index => {
+                        if output_is_tensor && !node.inputs.is_empty() {
+                            // Indexing a tensor: the object indexed must be a tensor
+                            if set.insert(node.inputs[0]) {
+                                changed = true;
+                            }
+                        }
+                    }
+                    _ => {}
+                }
             }
+        }
+        if !changed {
+            break;
         }
     }
     set
