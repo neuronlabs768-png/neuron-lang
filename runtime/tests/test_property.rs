@@ -189,6 +189,8 @@ pub extern "Rust" fn run_main_{}(vm: &mut VM) -> Value {{
     
     // Setup cargo project in a FIXED directory for incremental compilation
     let temp_dir = std::env::temp_dir().join("neuron_jit_property_test_cache");
+    // Remove stale cache to avoid stale Cargo.lock referencing old paths
+    let _ = fs::remove_dir_all(&temp_dir);
     let src_dir = temp_dir.join("src");
     fs::create_dir_all(&src_dir).unwrap();
     
