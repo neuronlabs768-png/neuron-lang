@@ -29,6 +29,35 @@ const codeSnippets = {
     <span class="hl-keyword">update</span> self.w <span class="hl-keyword">by</span> sgd(grad(loss), lr=<span class="hl-number">0.1</span>)`
 };
 
+// 1b. Raw Code Snippets for Copy-to-Clipboard
+const rawSnippets = {
+  temporal: `fn predict_price(prices: Temporal[Tensor, past_to_future]) -> Tensor:
+    let prev_price = prices.before(1) # OK: reading historical price
+    let future_leak = prices.after(2)  # COMPILE ERROR: lookahead bias!
+    return future_leak`,
+
+  causal: `fn treatment_analysis(patient_data: Dataset):
+    let obs = observe(patient_data, treatment=1)  # P(Y|X)
+    let intervened = intervene(treatment=1)      # P(Y|do(X))
+    
+    # TYPE ERROR: Cannot mix conditional observations with interventions
+    let effect: Causal[Intervention] = obs`,
+
+  uncertainty: `fn autonomous_driving(lidar: Uncertain[Tensor[1, 3]]) -> Tensor:
+    let distance = preprocess(lidar)
+    
+    # COMPILER WARNING: returning Uncertain prediction without check
+    return distance`,
+
+  autograd: `@differentiable
+model LinearNet:
+  w: Tensor[4, 1] = glorot(4, 1)
+
+  fn train(self, x: Tensor[B, 4], y: Tensor[B, 1]) [Effect[Mut[self]]]:
+    let loss = mse(x @ self.w, y)
+    update self.w by sgd(grad(loss), lr=0.1)`
+};
+
 // 2. Line counts for each snippet
 const lineCounts = {
   temporal: 4,
@@ -96,6 +125,7 @@ const codeContainer = document.getElementById("code-container");
 const lineNumbersContainer = document.getElementById("line-numbers");
 const terminalBody = document.getElementById("terminal-body");
 const runBtn = document.getElementById("run-btn");
+const copyBtn = document.getElementById("copy-btn");
 const navToggle = document.getElementById("nav-toggle-btn");
 const navLinks = document.querySelector(".nav-links");
 
@@ -138,7 +168,21 @@ tabContainer.addEventListener("click", (e) => {
   `;
 });
 
-// 8. Run Simulation
+// 8. Copy Snippet Event Listener
+copyBtn.addEventListener("click", () => {
+  const rawText = rawSnippets[currentTab];
+  navigator.clipboard.writeText(rawText).then(() => {
+    const span = copyBtn.querySelector("span");
+    span.textContent = "Copied!";
+    setTimeout(() => {
+      span.textContent = "Copy";
+    }, 2000);
+  }).catch(err => {
+    console.error("Clipboard copy failed: ", err);
+  });
+});
+
+// 9. Run Simulation
 runBtn.addEventListener("click", () => {
   if (isRunning) return;
   
@@ -200,7 +244,7 @@ runBtn.addEventListener("click", () => {
   printNextLine();
 });
 
-// 9. Mobile Navbar Toggle
+// 10. Mobile Navbar Toggle
 navToggle.addEventListener("click", () => {
   navLinks.style.display = navLinks.style.display === "flex" ? "none" : "flex";
   navToggle.classList.toggle("active");
