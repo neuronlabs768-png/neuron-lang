@@ -233,15 +233,19 @@ debug = false
         temp_dir.join("target").join("debug").join("libneuron_jit_prop_test.so")
     };
     
-    // Copy DLL to avoid lock
-    let unique_dll_name = format!(
-        "neuron_jit_prop_{}.dll",
+    // Copy library to avoid lock issues
+    let lib_ext = if cfg!(target_os = "windows") { "dll" }
+                  else if cfg!(target_os = "macos") { "dylib" }
+                  else { "so" };
+    let unique_lib_name = format!(
+        "neuron_jit_prop_{}.{}",
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_millis()
+            .as_millis(),
+        lib_ext
     );
-    let load_lib_path = temp_dir.join("target").join("debug").join(&unique_dll_name);
+    let load_lib_path = temp_dir.join("target").join("debug").join(&unique_lib_name);
     fs::copy(&lib_path, &load_lib_path).unwrap();
     
     println!("Loading JIT dynamic library...");
