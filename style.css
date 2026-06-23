@@ -35,6 +35,11 @@
   padding: 0;
 }
 
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 html {
   scroll-behavior: smooth;
   background-color: var(--bg-color);
@@ -44,7 +49,6 @@ html {
 }
 
 body {
-  overflow-x: hidden;
   position: relative;
 }
 
@@ -1189,8 +1193,37 @@ h1, h2, h3, h4 {
 }
 
 @media (max-width: 768px) {
+  .nav-toggle {
+    display: block;
+  }
+
   .nav-links {
-    display: none; /* Can be toggled in dynamic layouts */
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: rgba(5, 4, 9, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 2rem;
+    gap: 1.5rem;
+    align-items: stretch;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .nav-links a {
+    font-size: 1.1rem;
+    display: block;
+    padding: 0.5rem 0;
+  }
+
+  .nav-links .nav-btn {
+    justify-content: center;
+    width: 100%;
   }
   
   .hero h1 {
