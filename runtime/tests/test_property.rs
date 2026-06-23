@@ -192,7 +192,10 @@ pub extern "Rust" fn run_main_{}(vm: &mut VM) -> Value {{
     let src_dir = temp_dir.join("src");
     fs::create_dir_all(&src_dir).unwrap();
     
-    let cargo_toml_content = r#"[package]
+    let runtime_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .to_string_lossy()
+        .replace('\\', "/");
+    let cargo_toml_content = format!(r#"[package]
 name = "neuron_jit_prop_test"
 version = "0.1.0"
 edition = "2021"
@@ -201,12 +204,12 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-neuron-runtime = { path = "C:/Users/ADMIN/neuron-lang/runtime" }
+neuron-runtime = {{ path = "{}" }}
 
 [profile.dev]
 opt-level = 0
 debug = false
-"#;
+"#, runtime_path);
     fs::write(temp_dir.join("Cargo.toml"), cargo_toml_content).unwrap();
     fs::write(src_dir.join("lib.rs"), combined_rust).unwrap();
     
