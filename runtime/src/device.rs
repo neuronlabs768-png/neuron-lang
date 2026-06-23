@@ -74,6 +74,7 @@ pub struct CudaApi {
     pub cuDeviceGet: unsafe extern "C" fn(device: *mut i32, ordinal: i32) -> u32,
     pub cuCtxCreate_v2: unsafe extern "C" fn(pctx: *mut *mut std::ffi::c_void, flags: u32, dev: i32) -> u32,
     pub cuCtxDestroy_v2: unsafe extern "C" fn(ctx: *mut std::ffi::c_void) -> u32,
+    pub cuCtxSetCurrent: unsafe extern "C" fn(ctx: *mut std::ffi::c_void) -> u32,
     pub cuModuleLoadData: unsafe extern "C" fn(module: *mut *mut std::ffi::c_void, image: *const std::ffi::c_void) -> u32,
     pub cuModuleUnload: unsafe extern "C" fn(module: *mut std::ffi::c_void) -> u32,
     pub cuModuleGetFunction: unsafe extern "C" fn(hfunc: *mut *mut std::ffi::c_void, hmod: *mut std::ffi::c_void, name: *const std::os::raw::c_char) -> u32,
@@ -154,6 +155,7 @@ impl CudaApi {
             let cuDeviceGet = *lib.get(b"cuDeviceGet").map_err(|e| e.to_string())?;
             let cuCtxCreate_v2 = *lib.get(b"cuCtxCreate_v2").map_err(|e| e.to_string())?;
             let cuCtxDestroy_v2 = *lib.get(b"cuCtxDestroy_v2").map_err(|e| e.to_string())?;
+            let cuCtxSetCurrent = *lib.get(b"cuCtxSetCurrent").map_err(|e| e.to_string())?;
             let cuModuleLoadData = *lib.get(b"cuModuleLoadData").map_err(|e| e.to_string())?;
             let cuModuleUnload = *lib.get(b"cuModuleUnload").map_err(|e| e.to_string())?;
             let cuModuleGetFunction = *lib.get(b"cuModuleGetFunction").map_err(|e| e.to_string())?;
@@ -173,6 +175,7 @@ impl CudaApi {
                 cuDeviceGet,
                 cuCtxCreate_v2,
                 cuCtxDestroy_v2,
+                cuCtxSetCurrent,
                 cuModuleLoadData,
                 cuModuleUnload,
                 cuModuleGetFunction,
@@ -370,10 +373,17 @@ pub fn get_cuda_context() -> Option<&'static CudaContext> {
     if is_simulate_cuda() {
         return None;
     }
-    CUDA_CONTEXT.get_or_init(|| {
+    let context = CUDA_CONTEXT.get_or_init(|| {
         match CudaContext::init() {
             Ok(ctx) => Some(ctx),
             Err(_) => None,
         }
-    }).as_ref()
+    }).as_ref();
+
+    if let Some(ctx) = context {
+        unsafe {
+            let _ = (ctx.cuda.cuCtxSetCurrent)(ctx.ctx);
+        }
+    }
+    context
 }
