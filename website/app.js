@@ -269,6 +269,30 @@ model LinearNet:
     });
   });
 
+  // 12. SaaS Pricing Billing Toggle Switch
+  const pricingToggle = document.getElementById("pricing-toggle");
+  const proPriceVal = document.getElementById("pro-price");
+  const proPricePeriod = document.getElementById("pro-price-period");
+  const billingMonthlyLabel = document.getElementById("billing-monthly");
+  const billingYearlyLabel = document.getElementById("billing-yearly");
+
+  if (pricingToggle) {
+    pricingToggle.addEventListener("click", () => {
+      const isYearly = pricingToggle.classList.toggle("active");
+      if (isYearly) {
+        proPriceVal.textContent = "39";
+        proPricePeriod.textContent = "/ mo (billed annually)";
+        billingMonthlyLabel.classList.remove("active");
+        billingYearlyLabel.classList.add("active");
+      } else {
+        proPriceVal.textContent = "49";
+        proPricePeriod.textContent = "/ mo";
+        billingMonthlyLabel.classList.add("active");
+        billingYearlyLabel.classList.remove("active");
+      }
+    });
+  }
+
   // Initialize playground on startup
   initPlayground();
 

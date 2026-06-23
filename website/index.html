@@ -33,6 +33,7 @@
           <li><a href="#comparison">Comparison</a></li>
           <li><a href="#benchmarks">Benchmarks</a></li>
           <li><a href="#faq">FAQ</a></li>
+          <li><a href="#pricing">Pricing</a></li>
           <li><a href="#licensing">Licensing</a></li>
           <li>
             <a href="paper.html" target="_blank" class="nav-btn nav-btn-secondary">
@@ -433,6 +434,135 @@
     </div>
   </section>
 
+  <!-- 6.8. Pricing & SaaS Section -->
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <h2 class="section-title">Simple, Transparent <span class="gradient-text-teal">SaaS Plans</span></h2>
+      <p class="section-subtitle">Choose the pricing model that fits your team's cognitive workloads, from local research to serverless cloud agent hosting.</p>
+      
+      <div class="pricing-toggle-container">
+        <span class="toggle-label active" id="billing-monthly">Monthly</span>
+        <button class="pricing-toggle-btn" id="pricing-toggle" aria-label="Toggle billing cycle">
+          <span class="toggle-circle"></span>
+        </button>
+        <span class="toggle-label" id="billing-yearly">Yearly (Save 20%)</span>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Tier 1: Developer -->
+        <div class="pricing-card glass-panel">
+          <div class="pricing-tier-badge">Open Source</div>
+          <h3>Developer</h3>
+          <p class="pricing-desc">For individual developers, academics, and open-source contributors.</p>
+          <div class="price-box">
+            <span class="price-currency">$</span>
+            <span class="price-val">0</span>
+            <span class="price-period">/ forever</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Core CLI & JIT Compiler</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Custom CPU Interpreter</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Core Standard Libraries</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Community-led Support</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>BSL 1.1 Source-Available</span>
+            </li>
+          </ul>
+          <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="price-btn">Download SDK</a>
+        </div>
+
+        <!-- Tier 2: Cloud Pro (Recommended) -->
+        <div class="pricing-card glass-panel recommended">
+          <div class="pricing-tier-badge recommended-badge">Recommended</div>
+          <h3>Cloud Pro</h3>
+          <p class="pricing-desc">Serverless hosting and detailed analytics for cognitive AI agents.</p>
+          <div class="price-box">
+            <span class="price-currency">$</span>
+            <span class="price-val" id="pro-price">49</span>
+            <span class="price-period" id="pro-price-period">/ mo</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Serverless deployment (<code>neuronc deploy</code>)</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>100k GPU-ms compute / mo</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>10 GB persistent episodic memory</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Curiosity prediction tracking</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Safety alignment dashboard</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Email & Slack Developer Support</span>
+            </li>
+          </ul>
+          <button class="price-btn price-btn-primary" onclick="alert('Cognitive agent deployment cloud console is in closed beta. Sign-up details sent to your registered email.')">Start Deploying</button>
+        </div>
+
+        <!-- Tier 3: Enterprise -->
+        <div class="pricing-card glass-panel">
+          <div class="pricing-tier-badge">B2B Core</div>
+          <h3>Enterprise</h3>
+          <p class="pricing-desc">For proprietary trading, high-frequency quant models, and robotics.</p>
+          <div class="price-box">
+            <span class="price-val">Custom</span>
+          </div>
+          <ul class="price-features">
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Proprietary NVIDIA CUDA Compiler</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>LLVM machine-code compiler backend</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Site-wide commercial license</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>24/7 Dedicated SLA Support</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Custom math kernel optimizations</span>
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>Secure container sandboxing</span>
+            </li>
+          </ul>
+          <a href="mailto:neuronlabs768@gmail.com?subject=Enterprise%20SaaS%20Inquiry" class="price-btn">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- 7. Licensing & Commercial Section -->
   <section class="licensing-section" id="licensing">
     <div class="container">
@@ -488,6 +618,7 @@
           <li><a href="#playground">Playground</a></li>
           <li><a href="#comparison">Comparison</a></li>
           <li><a href="#benchmarks">Benchmarks</a></li>
+          <li><a href="#pricing">Pricing</a></li>
           <li><a href="#licensing">Licensing</a></li>
           <li><a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank">GitHub</a></li>
           <li><a href="paper.html" target="_blank">Paper Draft</a></li>
