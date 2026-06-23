@@ -271,6 +271,15 @@ impl CudaContext {
                 return Err(format!("cuCtxCreate_v2 failed: {}", res));
             }
             
+            // Test allocate a tiny UVM buffer to verify Unified Memory support in the container/driver
+            let mut dev_ptr: u64 = 0;
+            let res_alloc = (cuda.cuMemAllocManaged)(&mut dev_ptr, 8, 0x01);
+            if res_alloc != 0 {
+                (cuda.cuCtxDestroy_v2)(ctx);
+                return Err(format!("CUDA Unified Memory allocation not supported in this environment (error code {})", res_alloc));
+            }
+            (cuda.cuMemFree_v2)(dev_ptr);
+            
             Ok(CudaContext {
                 cuda,
                 nvrtc,
