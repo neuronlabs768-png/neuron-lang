@@ -627,10 +627,17 @@ impl VM {
 
             IROp::Zeros(shape) => {
                 let s: Vec<usize> = if !node.inputs.is_empty() {
-                    node.inputs.iter().map(|id| get(id).as_int() as usize).collect()
+                    let resolved: Vec<usize> = node.inputs.iter().map(|id| {
+                        let val = get(id);
+                        let dim = val.as_int() as usize;
+                        eprintln!("[NEURON-DEBUG] Zeros input id={} val={:?} dim={}", id, val.display(), dim);
+                        dim
+                    }).collect();
+                    resolved
                 } else {
                     shape.iter().map(|&d| d as usize).collect()
                 };
+                eprintln!("[NEURON-DEBUG] Zeros final shape={:?}", s);
                 let mut t = Tensor::zeros(&s);
                 t.id = self.tape.alloc_id();
                 Ok(Value::Tensor(t))
