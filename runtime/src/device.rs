@@ -51,7 +51,9 @@ impl Device {
 
     /// Check if CUDA (actual or simulated) is available.
     pub fn cuda_available() -> bool {
-        if is_simulate_cuda() {
+        if is_force_cpu() {
+            false
+        } else if is_simulate_cuda() {
             true
         } else {
             get_cuda_context().is_some()
