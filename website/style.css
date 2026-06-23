@@ -411,11 +411,20 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
 }
 
 .editor-tabs {
   display: flex;
   height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+  -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+  flex-grow: 1;
+}
+
+.editor-tabs::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari/Opera */
 }
 
 .tab-btn {
@@ -423,7 +432,7 @@ h1, h2, h3, h4 {
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text-muted);
-  padding: 0 1.2rem;
+  padding: 0 0.8rem;
   font-family: var(--font-display);
   font-size: 0.85rem;
   font-weight: 600;
@@ -433,6 +442,7 @@ h1, h2, h3, h4 {
   align-items: center;
   gap: 0.4rem;
   transition: var(--transition-smooth);
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -450,6 +460,7 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .copy-btn {
