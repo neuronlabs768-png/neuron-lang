@@ -1683,6 +1683,16 @@ impl VM {
                 kernel_params.push(ptr);
             }
             
+            for (idx, &input_id) in kernel.inputs.iter().enumerate() {
+                if kernel.input_is_tensor[idx] {
+                    let val = get_val(input_id);
+                    if let Value::Tensor(ref tensor) = val {
+                        println!("[NEURON-DEBUG] fused input: id={}, numel={}, first_val={:?}",
+                                 input_id, tensor.numel(), tensor.data.get(0..5));
+                    }
+                }
+            }
+
             let block_size = 256;
             let grid_size = (numel + block_size - 1) / block_size;
             
@@ -1710,6 +1720,8 @@ impl VM {
             }
             
             output_tensor.data.prefetch_to_host();
+            println!("[NEURON-DEBUG] execute_fused_group: output_id={}, numel={}, first_val={:?}",
+                     output_id, numel, output_tensor.data.get(0..5));
             
             // Execute nodes on CPU to populate tape and intermediate values for autograd
             let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
