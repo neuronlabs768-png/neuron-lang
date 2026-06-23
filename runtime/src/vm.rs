@@ -1589,14 +1589,49 @@ impl VM {
                 
             let mut output_shape = vec![1];
             for &input_id in &kernel.inputs {
-                if let Value::Tensor(t) = get_val(input_id) {
+                let val = get_val(input_id);
+                eprintln!("[NEURON-CUDA-DEBUG] kernel input id={} type={}", input_id, 
+                    match &val { Value::Tensor(t) => format!("Tensor(shape={:?}, uvm_ptr={})", t.shape, t.uvm_device_ptr()),
+                                 Value::Float(f) => format!("Float({})", f),
+                                 Value::Void => "Void".into(),
+                                 _ => "Other".into() });
+                if let Value::Tensor(t) = val {
                     output_shape = t.shape.clone();
                     break;
                 }
             }
             let numel = output_shape.iter().product::<usize>();
+            eprintln!("[NEURON-CUDA-DEBUG] output_shape={:?}, numel={}", output_shape, numel);
+            
+            // Guard: grid=0 is an invalid CUDA launch. Fall back to CPU.
+            if numel == 0 {
+                eprintln!("[NEURON-CUDA] numel=0, falling back to CPU for fused group {}", g_idx);
+                // Execute all nodes on CPU instead
+                let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
+                for node in &group.instructions {
+                    let res = self.exec_node(node, &local_ssa)?;
+                    local_ssa.insert(node.id, res.clone());
+                    self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+                }
+                self.effect_log.push(format!("fallback_to_cpu_cuda_{}", g_idx));
+                return Ok(());
+            }
+            
             let output_tensor = Tensor::new(Buffer::new_uvm(numel), output_shape);
             let out_ptr = output_tensor.uvm_device_ptr();
+            
+            // If output UVM allocation failed (ptr=0), fall back to CPU
+            if out_ptr == 0 {
+                eprintln!("[NEURON-CUDA] output UVM alloc failed (Host fallback), running on CPU for group {}", g_idx);
+                let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
+                for node in &group.instructions {
+                    let res = self.exec_node(node, &local_ssa)?;
+                    local_ssa.insert(node.id, res.clone());
+                    self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+                }
+                self.effect_log.push(format!("fallback_to_cpu_cuda_{}", g_idx));
+                return Ok(());
+            }
             
             enum CudaArg {
                 Ptr(u64),
@@ -1607,15 +1642,33 @@ impl VM {
             let mut arg_values = Vec::new();
             arg_values.push(CudaArg::Ptr(out_ptr));
             
+            let mut any_input_missing_uvm = false;
             for (idx, &input_id) in kernel.inputs.iter().enumerate() {
                 let val = get_val(input_id);
                 if kernel.input_is_tensor[idx] {
                     let tensor = val.as_tensor().ok_or_else(|| format!("Expected tensor input for value {}", input_id))?;
                     tensor.data.prefetch_to_device();
-                    arg_values.push(CudaArg::Ptr(tensor.uvm_device_ptr()));
+                    let ptr = tensor.uvm_device_ptr();
+                    if ptr == 0 {
+                        eprintln!("[NEURON-CUDA] input {} has Host storage (no UVM ptr), falling back to CPU", input_id);
+                        any_input_missing_uvm = true;
+                        break;
+                    }
+                    arg_values.push(CudaArg::Ptr(ptr));
                 } else {
                     arg_values.push(CudaArg::Float(val.as_float()));
                 }
+            }
+            
+            if any_input_missing_uvm {
+                let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
+                for node in &group.instructions {
+                    let res = self.exec_node(node, &local_ssa)?;
+                    local_ssa.insert(node.id, res.clone());
+                    self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+                }
+                self.effect_log.push(format!("fallback_to_cpu_cuda_{}", g_idx));
+                return Ok(());
             }
             
             arg_values.push(CudaArg::Int(numel as i32));

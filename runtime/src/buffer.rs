@@ -78,6 +78,11 @@ impl Buffer {
 
     /// Explicitly allocate Unified Memory.
     pub fn new_uvm(size: usize) -> Self {
+        // cuMemAllocManaged with 0 bytes is invalid (CUDA_ERROR_INVALID_VALUE).
+        // Skip CUDA for empty buffers.
+        if size == 0 {
+            return Self { storage: BufferStorage::Host(Vec::new()) };
+        }
         if let Some(ctx) = crate::device::get_cuda_context() {
             let mut device_ptr: u64 = 0;
             let byte_size = size * std::mem::size_of::<f64>();
@@ -97,7 +102,7 @@ impl Buffer {
                     }
                 };
             } else {
-                println!("cuMemAllocManaged failed (code {}). Falling back to CPU.", res);
+                eprintln!("cuMemAllocManaged failed (code {}). Size: {} elems, {} bytes. Falling back to CPU.", res, size, byte_size);
             }
         }
         
