@@ -250,6 +250,23 @@ navToggle.addEventListener("click", () => {
   navToggle.classList.toggle("active");
 });
 
+// 11. FAQ Accordion Event Listeners
+const faqItems = document.querySelectorAll(".faq-item");
+faqItems.forEach(item => {
+  const question = item.querySelector(".faq-question");
+  question.addEventListener("click", () => {
+    const isActive = item.classList.contains("active");
+    
+    // Close other items
+    faqItems.forEach(el => el.classList.remove("active"));
+    
+    // Toggle clicked item
+    if (!isActive) {
+      item.classList.add("active");
+    }
+  });
+});
+
 // Initialize playground on startup
 initPlayground();
 
