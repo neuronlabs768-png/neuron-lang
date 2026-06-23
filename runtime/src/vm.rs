@@ -1453,6 +1453,8 @@ impl VM {
 
     fn update_tensor_in_place(&mut self, t: &mut Tensor, lr: f64, method: &str) {
         if let Some(grad) = self.tape.get_grad(t.id) {
+            println!("[NEURON-DEBUG] update_tensor_in_place: id={}, numel={}, grad_len={}, first_grad={:?}, first_val={:?}",
+                     t.id, t.numel(), grad.len(), grad.get(0..5), t.data.get(0..5));
             let n = t.numel();
             match method {
                 "adam" | "adamw" => {
