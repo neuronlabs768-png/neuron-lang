@@ -102,6 +102,7 @@ pub enum IROp {
     GeLU,
     Sigmoid,
     Tanh,
+    Sqrt,
     Softmax { dim: i64 },
     
     // ── Reductions ──
@@ -116,6 +117,7 @@ pub enum IROp {
     Slice(Vec<SliceSpec>),
     Concat { dim: i64 },
     Index,
+    UpdateRow,
     
     // ── Neural network layers ──
     Linear { in_features: i64, out_features: i64 },

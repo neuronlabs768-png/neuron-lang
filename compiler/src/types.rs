@@ -246,9 +246,14 @@ impl SymbolTable {
         let any = NType::Any;
 
         global.define("zeros", NType::Fn_(vec![any.clone()], Box::new(tensor.clone()), None));
+        global.define("ones", NType::Fn_(vec![any.clone()], Box::new(tensor.clone()), None));
+        global.define("randn", NType::Fn_(vec![any.clone()], Box::new(tensor.clone()), None));
         global.define("glorot", NType::Fn_(vec![any.clone()], Box::new(tensor.clone()), None));
         global.define("relu", NType::Fn_(vec![tensor.clone()], Box::new(tensor.clone()), None));
         global.define("gelu", NType::Fn_(vec![tensor.clone()], Box::new(tensor.clone()), None));
+        global.define("sqrt", NType::Fn_(vec![any.clone()], Box::new(any.clone()), None));
+        global.define("transpose", NType::Fn_(vec![tensor.clone(), int.clone(), int.clone()], Box::new(tensor.clone()), None));
+        global.define("update_row", NType::Fn_(vec![tensor.clone(), int.clone(), tensor.clone()], Box::new(tensor.clone()), None));
         global.define("softmax", NType::Fn_(vec![tensor.clone()], Box::new(tensor.clone()), None));
         global.define("sigmoid", NType::Fn_(vec![tensor.clone()], Box::new(tensor.clone()), None));
         global.define("tanh", NType::Fn_(vec![tensor.clone()], Box::new(tensor.clone()), None));
@@ -435,8 +440,16 @@ impl TypeChecker {
                 self.symbols.define(&l.name, ty);
             }
             TopLevel::Import(imp) => {
-                for name in &imp.names { self.symbols.define(name, NType::Any); }
-                if let Some(ref alias) = imp.alias { self.symbols.define(alias, NType::Any); }
+                for name in &imp.names {
+                    if self.symbols.lookup(name).is_none() {
+                        self.symbols.define(name, NType::Any);
+                    }
+                }
+                if let Some(ref alias) = imp.alias {
+                    if self.symbols.lookup(alias).is_none() {
+                        self.symbols.define(alias, NType::Any);
+                    }
+                }
             }
             _ => {}
         }

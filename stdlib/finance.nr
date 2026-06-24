@@ -41,7 +41,8 @@ fn rolling_std(data: List[Float], window: Int) -> List[Float]:
         sum_sq = sum_sq + diff * diff
       }
       let variance = sum_sq * (1.0 / (window - 1))
-      res = res + [variance] // std approx
+      let std_val = sqrt(variance + 1e-8)
+      res = res + [std_val]
     }
   }
   return res

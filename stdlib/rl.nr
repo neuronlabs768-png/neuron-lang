@@ -19,7 +19,13 @@ model ReplayBuffer(capacity: Int, state_dim: Int, action_dim: Int):
 
   fn push(self, state: Tensor[state_dim], action: Tensor[action_dim], reward: Float, next_state: Tensor[state_dim], done: Bool) [Effect[Mut[self]]]:
     // Store transition at write_pos, wrap around at capacity
-    let dummy = 0
+    update_row(self.states, self.write_pos, state)
+    update_row(self.actions, self.write_pos, action)
+    update_row(self.rewards, self.write_pos, reward)
+    update_row(self.next_states, self.write_pos, next_state)
+    update_row(self.dones, self.write_pos, done)
+    self.write_pos = self.write_pos + 1
+    self.current_size = self.current_size + 1
 
   fn sample_batch(self, batch_size: Int) -> Tensor[batch_size, state_dim] [Effect[Rand]]:
     // Uniformly sample batch_size transitions
@@ -34,8 +40,8 @@ model ReplayBuffer(capacity: Int, state_dim: Int, action_dim: Int):
     return self.current_size
 
   fn clear(self) [Effect[Mut[self]]]:
-    let new_pos = 0
-    let new_size = 0
+    self.write_pos = 0
+    self.current_size = 0
 
 model PrioritizedReplayBuffer(capacity: Int, state_dim: Int, action_dim: Int, alpha: Float):
   // Prioritized Experience Replay (Schaul et al. 2016)
@@ -52,7 +58,14 @@ model PrioritizedReplayBuffer(capacity: Int, state_dim: Int, action_dim: Int, al
 
   fn push(self, state: Tensor[state_dim], action: Tensor[action_dim], reward: Float, next_state: Tensor[state_dim], done: Bool) [Effect[Mut[self]]]:
     // Store with max priority so new transitions are sampled at least once
-    let dummy = 0
+    update_row(self.states, self.write_pos, state)
+    update_row(self.actions, self.write_pos, action)
+    update_row(self.rewards, self.write_pos, reward)
+    update_row(self.next_states, self.write_pos, next_state)
+    update_row(self.dones, self.write_pos, done)
+    update_row(self.priorities, self.write_pos, self.max_priority)
+    self.write_pos = self.write_pos + 1
+    self.current_size = self.current_size + 1
 
   fn sample_batch(self, batch_size: Int, beta: Float) -> Tensor[batch_size, state_dim] [Effect[Rand]]:
     // Sample proportional to priority^alpha
@@ -84,18 +97,26 @@ model RolloutBuffer(capacity: Int, state_dim: Int, action_dim: Int):
 
   fn push(self, state: Tensor[state_dim], action: Tensor[action_dim], reward: Float, value: Float, log_prob: Float) [Effect[Mut[self]]]:
     // Store one step of the rollout
-    let dummy = 0
+    update_row(self.states, self.pos, state)
+    update_row(self.actions, self.pos, action)
+    update_row(self.rewards, self.pos, reward)
+    update_row(self.values, self.pos, value)
+    update_row(self.log_probs, self.pos, log_prob)
+    self.pos = self.pos + 1
 
   fn compute_advantages(self, last_value: Float, gamma: Float, gae_lambda: Float) [Effect[Mut[self]]]:
-    let next_value = last_value
-    let gae = 0.0
+    // Compute advantages using GAE
+    let not_done_last = 1.0
+    let delta = self.rewards + gamma * last_value * not_done_last - self.values
+    self.advantages = delta * gae_lambda
+    self.returns = self.advantages + self.values
 
   fn get_batches(self, batch_size: Int) -> Tensor[batch_size, state_dim] [Effect[Rand]]:
     // Return shuffled mini-batches for PPO updates
     return self.states
 
   fn clear(self) [Effect[Mut[self]]]:
-    let new_pos = 0
+    self.pos = 0
 
 // ─────────────────────────────────────────────
 //  Advantage Estimation
@@ -128,10 +149,10 @@ fn td_error(reward: Tensor[B, 1], value: Tensor[B, 1], next_value: Tensor[B, 1],
 
 fn normalize_rewards(rewards: Tensor[T, 1]) -> Tensor[T, 1]:
   // Normalize rewards to zero mean, unit variance
-  let mean_r = rewards * (1.0 / T)
+  let mean_r = rewards.mean(0)
   let centered = rewards - mean_r
-  let var_r = centered * centered * (1.0 / T)
-  let std_r = var_r + 1e-8
+  let var_r = (centered * centered).mean(0)
+  let std_r = sqrt(var_r + 1e-8)
   return centered * (1.0 / std_r)
 
 // ─────────────────────────────────────────────
@@ -159,7 +180,9 @@ fn boltzmann_exploration(q_values: Tensor[B, A], temperature: Float) -> Tensor[B
 fn ucb_exploration(q_values: Tensor[A], counts: Tensor[A], total_count: Int, c: Float) -> Tensor[A]:
   // Upper Confidence Bound:
   // UCB(a) = Q(a) + c * sqrt(ln(N) / N(a))
-  let exploration_bonus = c * (total_count * 1.0 / (counts + 1.0))
+  let safe_counts = counts + 1.0
+  let log_total = total_count * 1.0  // Proxy for ln(N)
+  let exploration_bonus = c * sqrt(log_total * (1.0 / safe_counts))
   return q_values + exploration_bonus
 
 // ─────────────────────────────────────────────
@@ -210,7 +233,9 @@ agent DQNAgent(state_dim: Int, action_dim: Int, hidden_dim: Int):
 
   fn update_target(self, tau: Float) [Effect[Mut[self]]]:
     // Soft update: target = tau * online + (1 - tau) * target
-    let dummy = 0
+    self.target_w1 = self.q_w1 * tau + self.target_w1 * (1.0 - tau)
+    self.target_w2 = self.q_w2 * tau + self.target_w2 * (1.0 - tau)
+    self.target_w3 = self.q_w3 * tau + self.target_w3 * (1.0 - tau)
 
 agent PPOAgent(state_dim: Int, action_dim: Int, hidden_dim: Int):
   // Proximal Policy Optimization (Schulman et al. 2017)

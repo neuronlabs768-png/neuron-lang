@@ -385,6 +385,49 @@ fn jit_cross_entropy(vm: &mut VM, a: &Value, b: &Value) -> Value {
         _ => Value::Float(0.0),
     }
 }
+
+fn jit_sum(vm: &mut VM, a: &Value, dim: Option<i64>) -> Value {
+    if let Value::Tensor(t) = a {
+        Value::Tensor(vm.tape.sum(t, dim.map(|d| d as usize)))
+    } else {
+        a.clone()
+    }
+}
+
+fn jit_mean(vm: &mut VM, a: &Value, dim: Option<i64>) -> Value {
+    if let Value::Tensor(t) = a {
+        Value::Tensor(vm.tape.mean(t, dim.map(|d| d as usize)))
+    } else {
+        a.clone()
+    }
+}
+
+fn jit_sqrt(vm: &mut VM, a: &Value) -> Value {
+    if let Value::Tensor(t) = a {
+        Value::Tensor(vm.tape.sqrt(t))
+    } else {
+        match a {
+            Value::Float(f) => Value::Float(f.sqrt()),
+            Value::Int(i) => Value::Float((*i as f64).sqrt()),
+            _ => a.clone(),
+        }
+    }
+}
+
+fn jit_update_row(vm: &mut VM, a: &Value, idx: &Value, row: &Value) -> Value {
+    if let (Value::Tensor(t), Value::Tensor(r)) = (a, row) {
+        let i = idx.as_int() as usize;
+        let mut new_data = t.data.clone();
+        let row_len = r.numel();
+        let start = i * row_len;
+        if start + row_len <= new_data.len() {
+            new_data[start..start + row_len].copy_from_slice(&r.data[..row_len]);
+        }
+        Value::Tensor(Tensor::new(new_data, t.shape.clone()))
+    } else {
+        a.clone()
+    }
+}
 "#);
         rust_code
     }
@@ -538,21 +581,14 @@ r#"                locals.insert({:?}.to_string(), v{}.clone());
                             IROp::ListLen => format!("jit_list_len(&v{})", node.inputs[0]),
                             IROp::Index => format!("jit_index(&v{}, &v{})", node.inputs[0], node.inputs[1]),
                             IROp::StopGrad => format!("jit_stop_grad(vm, &v{})", node.inputs[0]),
-                            IROp::Sum { .. } => {
-                                format!(
-            r#"if let Value::Tensor(t) = &v{} {{
-                    let sum_val = t.data.iter().sum::<f64>();
-                    Value::Tensor(Tensor::new(vec![sum_val], vec![1]))
-                }} else {{ v{}.clone() }}"#, node.inputs[0], node.inputs[0])
+                            IROp::Sum { dim } => {
+                                format!("jit_sum(vm, &v{}, {:?})", node.inputs[0], dim)
                             }
-                            IROp::Mean { .. } => {
-                                format!(
-            r#"if let Value::Tensor(t) = &v{} {{
-                    let n = t.numel();
-                    let sum_val = t.data.iter().sum::<f64>();
-                    let mean_val = if n > 0 {{ sum_val / n as f64 }} else {{ 0.0 }};
-                    Value::Tensor(Tensor::new(vec![mean_val], vec![1]))
-                }} else {{ v{}.clone() }}"#, node.inputs[0], node.inputs[0])
+                            IROp::Mean { dim } => {
+                                format!("jit_mean(vm, &v{}, {:?})", node.inputs[0], dim)
+                            }
+                            IROp::Sqrt => {
+                                format!("jit_sqrt(vm, &v{})", node.inputs[0])
                             }
                             IROp::Reshape(new_shape) => {
                                 let shape_str = format!("vec!{:?}", new_shape.iter().map(|&x| x as usize).collect::<Vec<_>>());
@@ -560,6 +596,9 @@ r#"                locals.insert({:?}.to_string(), v{}.clone());
             r#"if let Value::Tensor(t) = &v{} {{
                     Value::Tensor(t.reshape(&{}))
                 }} else {{ v{}.clone() }}"#, node.inputs[0], shape_str, node.inputs[0])
+                            }
+                            IROp::UpdateRow => {
+                                format!("jit_update_row(vm, &v{}, &v{}, &v{})", node.inputs[0], node.inputs[1], node.inputs[2])
                             }
                             
                             IROp::Grad { wrt } => {

@@ -1282,24 +1282,33 @@ impl VM {
                     other => other,
                 })
             }
-            IROp::Sum { dim: _ } => {
+            IROp::Sum { dim } => {
                 let a = get(&node.inputs[0]);
                 if let Value::Tensor(t) = &a {
-                    let sum_val = t.data.iter().sum::<f64>();
-                    Ok(Value::Tensor(Tensor::new(vec![sum_val], vec![1])))
+                    let dim_usize = dim.map(|d| d as usize);
+                    Ok(Value::Tensor(self.tape.sum(t, dim_usize)))
                 } else {
                     Ok(a)
                 }
             }
-            IROp::Mean { dim: _ } => {
+            IROp::Mean { dim } => {
                 let a = get(&node.inputs[0]);
                 if let Value::Tensor(t) = &a {
-                    let n = t.numel();
-                    let sum_val = t.data.iter().sum::<f64>();
-                    let mean_val = if n > 0 { sum_val / n as f64 } else { 0.0 };
-                    Ok(Value::Tensor(Tensor::new(vec![mean_val], vec![1])))
+                    let dim_usize = dim.map(|d| d as usize);
+                    Ok(Value::Tensor(self.tape.mean(t, dim_usize)))
                 } else {
                     Ok(a)
+                }
+            }
+            IROp::Sqrt => {
+                let a = get(&node.inputs[0]);
+                if let Value::Tensor(t) = &a {
+                    Ok(Value::Tensor(self.tape.sqrt(t)))
+                } else {
+                    match a {
+                        Value::Float(f) => Ok(Value::Float(f.sqrt())),
+                        _ => Ok(a),
+                    }
                 }
             }
             IROp::Reshape(new_shape) => {
@@ -1307,6 +1316,23 @@ impl VM {
                 if let Value::Tensor(t) = &a {
                     let shape_usize: Vec<usize> = new_shape.iter().map(|&x| x as usize).collect();
                     Ok(Value::Tensor(t.reshape(&shape_usize)))
+                } else {
+                    Ok(a)
+                }
+            }
+            IROp::UpdateRow => {
+                let a = get(&node.inputs[0]);
+                let idx = get(&node.inputs[1]);
+                let row = get(&node.inputs[2]);
+                if let (Value::Tensor(t), Value::Tensor(r)) = (&a, &row) {
+                    let i = idx.as_int() as usize;
+                    let mut new_data = t.data.clone();
+                    let row_len = r.numel();
+                    let start = i * row_len;
+                    if start + row_len <= new_data.len() {
+                        new_data[start..start + row_len].copy_from_slice(&r.data[..row_len]);
+                    }
+                    Ok(Value::Tensor(Tensor::new(new_data, t.shape.clone())))
                 } else {
                     Ok(a)
                 }

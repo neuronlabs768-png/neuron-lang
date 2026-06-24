@@ -237,6 +237,107 @@ impl Tensor {
         self.sum_all() / self.numel() as f64
     }
 
+    /// Sum elements globally or along a dimension.
+    pub fn sum(&self, dim: Option<usize>) -> Tensor {
+        match dim {
+            None => {
+                let s = self.data.iter().sum::<f64>();
+                Tensor::new(vec![s], vec![1])
+            }
+            Some(d) => {
+                assert!(d < self.ndim(), "Dimension out of bounds: {} for ndim {}", d, self.ndim());
+                let mut new_shape = self.shape.clone();
+                new_shape[d] = 1;
+                let mut out_data = vec![0.0; new_shape.iter().product()];
+                let n = self.numel();
+                for i in 0..n {
+                    let mut coords = vec![0; self.ndim()];
+                    let mut temp = i;
+                    for j in 0..self.ndim() {
+                        coords[j] = temp / self.strides[j];
+                        temp %= self.strides[j];
+                    }
+                    let mut out_coords = coords.clone();
+                    out_coords[d] = 0;
+                    
+                    let mut out_strides = vec![1; new_shape.len()];
+                    for j in (0..new_shape.len().saturating_sub(1)).rev() {
+                        out_strides[j] = out_strides[j + 1] * new_shape[j + 1];
+                    }
+                    let out_idx: usize = out_coords.iter().zip(out_strides.iter()).map(|(c, s)| c * s).sum();
+                    out_data[out_idx] += self.data[i];
+                }
+                Tensor::new(out_data, new_shape)
+            }
+        }
+    }
+
+    /// Mean of elements globally or along a dimension.
+    pub fn mean(&self, dim: Option<usize>) -> Tensor {
+        let sum_tensor = self.sum(dim);
+        match dim {
+            None => {
+                let n = self.numel() as f64;
+                sum_tensor.map(|x| if n > 0.0 { x / n } else { 0.0 })
+            }
+            Some(d) => {
+                let count = self.shape[d] as f64;
+                sum_tensor.map(|x| if count > 0.0 { x / count } else { 0.0 })
+            }
+        }
+    }
+
+    /// Broadcast tensor to a target shape.
+    pub fn broadcast_to(&self, target_shape: &[usize]) -> Tensor {
+        if self.shape == target_shape {
+            return self.clone();
+        }
+        
+        let mut out_data = vec![0.0; target_shape.iter().product()];
+        let ndim = target_shape.len();
+        let self_ndim = self.ndim();
+        
+        let mut target_strides = vec![1; ndim];
+        for i in (0..ndim.saturating_sub(1)).rev() {
+            target_strides[i] = target_strides[i + 1] * target_shape[i + 1];
+        }
+        
+        let mut padded_shape = vec![1; ndim];
+        let offset = ndim.saturating_sub(self_ndim);
+        for i in 0..self_ndim {
+            padded_shape[i + offset] = self.shape[i];
+        }
+        
+        let mut padded_strides = vec![1; ndim];
+        let mut acc = 1;
+        for j in (0..self_ndim).rev() {
+            padded_strides[j + offset] = acc;
+            acc *= self.shape[j];
+        }
+        for j in 0..offset {
+            padded_strides[j] = 0;
+        }
+        
+        for i in 0..out_data.len() {
+            let mut coords = vec![0; ndim];
+            let mut temp = i;
+            for j in 0..ndim {
+                coords[j] = temp / target_strides[j];
+                temp %= target_strides[j];
+            }
+            
+            let mut src_idx = 0;
+            for j in 0..ndim {
+                let c = if padded_shape[j] == 1 { 0 } else { coords[j] };
+                src_idx += c * padded_strides[j];
+            }
+            
+            out_data[i] = self.data[src_idx];
+        }
+        
+        Tensor::new(out_data, target_shape.to_vec())
+    }
+
     /// Element-wise apply.
     pub fn map<F: Fn(f64) -> f64 + Send + Sync>(&self, f: F) -> Tensor {
         let mut data = Buffer::new(self.data.len());
@@ -327,72 +428,102 @@ fn compute_strides(shape: &[usize]) -> Vec<usize> {
 //  Tensor operations (forward only — backward in autograd.rs)
 // ═══════════════════════════════════════════
 
+/// Helper to find the broadcasted shape of two inputs.
+pub fn broadcast_shapes(a: &[usize], b: &[usize]) -> Result<Vec<usize>, String> {
+    let ndim = a.len().max(b.len());
+    let mut result = vec![0; ndim];
+    let offset_a = ndim - a.len();
+    let offset_b = ndim - b.len();
+    for i in 0..ndim {
+        let size_a = if i >= offset_a { a[i - offset_a] } else { 1 };
+        let size_b = if i >= offset_b { b[i - offset_b] } else { 1 };
+        if size_a == size_b {
+            result[i] = size_a;
+        } else if size_a == 1 {
+            result[i] = size_b;
+        } else if size_b == 1 {
+            result[i] = size_a;
+        } else {
+            return Err(format!("Shapes are not compatible for broadcasting: {:?} vs {:?}", a, b));
+        }
+    }
+    Ok(result)
+}
+
 /// Element-wise add.
 pub fn tensor_add(a: &Tensor, b: &Tensor) -> Tensor {
-    assert_eq!(a.shape, b.shape, "Shape mismatch in add: {:?} vs {:?}", a.shape, b.shape);
-    let mut data = Buffer::new(a.data.len());
-    if a.data.len() > 65536 {
+    let common_shape = broadcast_shapes(&a.shape, &b.shape).expect("Broadcasting failed in add");
+    let a_bc = a.broadcast_to(&common_shape);
+    let b_bc = b.broadcast_to(&common_shape);
+    let mut data = Buffer::new(a_bc.data.len());
+    if a_bc.data.len() > 65536 {
         use rayon::prelude::*;
-        data.par_iter_mut().zip(a.data.par_iter().zip(b.data.par_iter())).for_each(|(d, (x, y))| {
+        data.par_iter_mut().zip(a_bc.data.par_iter().zip(b_bc.data.par_iter())).for_each(|(d, (x, y))| {
             *d = x + y;
         });
     } else {
-        for (d, (x, y)) in data.iter_mut().zip(a.data.iter().zip(b.data.iter())) {
+        for (d, (x, y)) in data.iter_mut().zip(a_bc.data.iter().zip(b_bc.data.iter())) {
             *d = x + y;
         }
     }
-    Tensor::new(data, a.shape.clone())
+    Tensor::new(data, common_shape)
 }
 
 /// Element-wise subtract.
 pub fn tensor_sub(a: &Tensor, b: &Tensor) -> Tensor {
-    assert_eq!(a.shape, b.shape, "Shape mismatch in sub: {:?} vs {:?}", a.shape, b.shape);
-    let mut data = Buffer::new(a.data.len());
-    if a.data.len() > 65536 {
+    let common_shape = broadcast_shapes(&a.shape, &b.shape).expect("Broadcasting failed in sub");
+    let a_bc = a.broadcast_to(&common_shape);
+    let b_bc = b.broadcast_to(&common_shape);
+    let mut data = Buffer::new(a_bc.data.len());
+    if a_bc.data.len() > 65536 {
         use rayon::prelude::*;
-        data.par_iter_mut().zip(a.data.par_iter().zip(b.data.par_iter())).for_each(|(d, (x, y))| {
+        data.par_iter_mut().zip(a_bc.data.par_iter().zip(b_bc.data.par_iter())).for_each(|(d, (x, y))| {
             *d = x - y;
         });
     } else {
-        for (d, (x, y)) in data.iter_mut().zip(a.data.iter().zip(b.data.iter())) {
+        for (d, (x, y)) in data.iter_mut().zip(a_bc.data.iter().zip(b_bc.data.iter())) {
             *d = x - y;
         }
     }
-    Tensor::new(data, a.shape.clone())
+    Tensor::new(data, common_shape)
 }
 
 /// Element-wise multiply.
 pub fn tensor_mul(a: &Tensor, b: &Tensor) -> Tensor {
-    assert_eq!(a.shape, b.shape, "Shape mismatch in mul: {:?} vs {:?}", a.shape, b.shape);
-    let mut data = Buffer::new(a.data.len());
-    if a.data.len() > 65536 {
+    let common_shape = broadcast_shapes(&a.shape, &b.shape).expect("Broadcasting failed in mul");
+    let a_bc = a.broadcast_to(&common_shape);
+    let b_bc = b.broadcast_to(&common_shape);
+    let mut data = Buffer::new(a_bc.data.len());
+    if a_bc.data.len() > 65536 {
         use rayon::prelude::*;
-        data.par_iter_mut().zip(a.data.par_iter().zip(b.data.par_iter())).for_each(|(d, (x, y))| {
+        data.par_iter_mut().zip(a_bc.data.par_iter().zip(b_bc.data.par_iter())).for_each(|(d, (x, y))| {
             *d = x * y;
         });
     } else {
-        for (d, (x, y)) in data.iter_mut().zip(a.data.iter().zip(b.data.iter())) {
+        for (d, (x, y)) in data.iter_mut().zip(a_bc.data.iter().zip(b_bc.data.iter())) {
             *d = x * y;
         }
     }
-    Tensor::new(data, a.shape.clone())
+    Tensor::new(data, common_shape)
 }
 
 /// Element-wise divide.
 pub fn tensor_div(a: &Tensor, b: &Tensor) -> Tensor {
-    assert_eq!(a.shape, b.shape, "Shape mismatch in div: {:?} vs {:?}", a.shape, b.shape);
-    let mut data = Buffer::new(a.data.len());
-    if a.data.len() > 65536 {
+    let common_shape = broadcast_shapes(&a.shape, &b.shape).expect("Broadcasting failed in div");
+    let a_bc = a.broadcast_to(&common_shape);
+    let b_bc = b.broadcast_to(&common_shape);
+    let mut data = Buffer::new(a_bc.data.len());
+    if a_bc.data.len() > 65536 {
         use rayon::prelude::*;
-        data.par_iter_mut().zip(a.data.par_iter().zip(b.data.par_iter())).for_each(|(d, (x, y))| {
+        data.par_iter_mut().zip(a_bc.data.par_iter().zip(b_bc.data.par_iter())).for_each(|(d, (x, y))| {
             *d = x / y;
         });
     } else {
-        for (d, (x, y)) in data.iter_mut().zip(a.data.iter().zip(b.data.iter())) {
+        for (d, (x, y)) in data.iter_mut().zip(a_bc.data.iter().zip(b_bc.data.iter())) {
             *d = x / y;
         }
     }
-    Tensor::new(data, a.shape.clone())
+    Tensor::new(data, common_shape)
 }
 
 /// Negate.

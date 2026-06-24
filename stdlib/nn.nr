@@ -8,54 +8,51 @@
 // ─────────────────────────────────────────────
 
 fn xavier_uniform(fan_in: Int, fan_out: Int) -> Tensor[fan_in, fan_out]:
-  // Glorot uniform: U(-limit, limit) where limit = sqrt(6 / (fan_in + fan_out))
-  // glorot() already implements this exact formula.
   return glorot(fan_in, fan_out)
 
 fn xavier_normal(fan_in: Int, fan_out: Int) -> Tensor[fan_in, fan_out]:
-  // Glorot normal: N(0, std) where std = sqrt(2 / (fan_in + fan_out))
-  // Scale randn by the correct std deviation
-  let std = (2.0 / (fan_in + fan_out)) * 1.0
-  let base = glorot(fan_in, fan_out)
-  // Rescale: glorot uses sqrt(6/(fin+fout)), we want sqrt(2/(fin+fout))
-  // Ratio = sqrt(2/6) = sqrt(1/3) ≈ 0.577
-  return base * 0.5774
+  let std = sqrt(2.0 / (fan_in + fan_out))
+  let base = randn(fan_in, fan_out)
+  return base * std
 
 fn kaiming_uniform(fan_in: Int, fan_out: Int) -> Tensor[fan_in, fan_out]:
-  // He uniform: U(-limit, limit) where limit = sqrt(6 / fan_in)
-  // glorot uses sqrt(6/(fan_in+fan_out)), we need sqrt(6/fan_in)
-  // Scale factor = sqrt((fan_in+fan_out)/fan_in) = sqrt(1 + fan_out/fan_in)
   let base = glorot(fan_in, fan_out)
-  let scale = ((fan_in + fan_out) * 1.0 / fan_in) * 1.0
+  let scale = sqrt((fan_in + fan_out) * 1.0 / fan_in)
   return base * scale
 
 fn kaiming_normal(fan_in: Int, fan_out: Int) -> Tensor[fan_in, fan_out]:
-  // He normal: N(0, std) where std = sqrt(2 / fan_in)
-  // glorot uses sqrt(6/(fin+fout)), we want sqrt(2/fin)
-  // Scale = sqrt(2/fan_in) / sqrt(6/(fin+fout)) = sqrt(2*(fin+fout) / (6*fin))
-  let base = glorot(fan_in, fan_out)
-  let scale = (2.0 * (fan_in + fan_out) / (6.0 * fan_in)) * 1.0
-  return base * scale
+  let std = sqrt(2.0 / fan_in)
+  let base = randn(fan_in, fan_out)
+  return base * std
 
 fn uniform_init(rows: Int, cols: Int, low: Float, high: Float) -> Tensor[rows, cols]:
-  // Uniform initialization in [low, high]
-  // glorot maps to [-limit, limit], so normalize to [0,1] first then rescale
   let base = glorot(rows, cols)
-  let scale = high - low
-  return base * scale + low
+  let limit = sqrt(6.0 / (rows + cols))
+  let u = (base / limit + 1.0) * 0.5
+  return u * (high - low) + low
 
 fn normal_init(rows: Int, cols: Int, mean: Float, std: Float) -> Tensor[rows, cols]:
-  // Normal initialization N(mean, std)
-  let base = glorot(rows, cols)
+  let base = randn(rows, cols)
   return base * std + mean
 
 fn orthogonal_init(rows: Int, cols: Int) -> Tensor[rows, cols]:
-  // Approximate orthogonal initialization via iterative normalization.
-  // True QR decomposition requires more runtime support; this applies
-  // iterative column normalization to reduce column correlation.
-  // For production use, prefer xavier_uniform which has similar properties.
-  let w = glorot(rows, cols)
-  return w
+  let base = randn(rows, cols)
+  let w = base * (1.0 / sqrt(rows * 1.0))
+  let w_t = transpose(w, 0, 1)
+  let w_w_t = w @ w_t
+  let w_w_t_w = w_w_t @ w
+  let w1 = w * 1.5 - w_w_t_w * 0.5
+  
+  let w1_t = transpose(w1, 0, 1)
+  let w1_w1_t = w1 @ w1_t
+  let w1_w1_t_w1 = w1_w1_t @ w1
+  let w2 = w1 * 1.5 - w1_w1_t_w1 * 0.5
+  
+  let w2_t = transpose(w2, 0, 1)
+  let w2_w2_t = w2 @ w2_t
+  let w2_w2_t_w2 = w2_w2_t @ w2
+  let w3 = w2 * 1.5 - w2_w2_t_w2 * 0.5
+  return w3
 
 // ─────────────────────────────────────────────
 //  Core Layers
@@ -94,20 +91,12 @@ layer LayerNorm(dim: Int):
   eps: Float = 1e-5
 
   fn forward(self, x: Tensor[B, S, dim]) -> Tensor[B, S, dim]:
-    // LayerNorm: normalize over last dim, then affine transform
-    // 1. Compute mean: sum all elements then divide by dim
-    let sum_x = x.sum()
-    let mean_val = sum_x * (1.0 / dim)
-    // 2. Center the input
+    let mean_val = x.mean(2)
     let centered = x - mean_val
-    // 3. Compute variance: mean of squared deviations
     let sq = centered * centered
-    let sum_sq = sq.sum()
-    let var_val = sum_sq * (1.0 / dim)
-    // 4. Normalize: x_hat = centered / sqrt(var + eps)
-    let std_val = var_val + self.eps
-    let normalized = centered * (1.0 / std_val)
-    // 5. Scale and shift
+    let var_val = sq.mean(2)
+    let std_val = sqrt(var_val + self.eps)
+    let normalized = centered / std_val
     let scaled = normalized * self.gamma
     let shifted = scaled + self.beta
     return shifted
@@ -118,12 +107,10 @@ layer RMSNorm(dim: Int):
   eps: Float = 1e-6
 
   fn forward(self, x: Tensor[B, S, dim]) -> Tensor[B, S, dim]:
-    // RMSNorm: y = x * gamma / sqrt(mean(x^2) + eps)
-    // No centering (no mean subtraction), more efficient than LayerNorm
     let sq = x * x
-    let mean_sq = sq * (1.0 / dim)
-    let rms = mean_sq + self.eps
-    let normalized = x * (1.0 / rms)
+    let mean_sq = sq.mean(2)
+    let rms = sqrt(mean_sq + self.eps)
+    let normalized = x / rms
     return normalized * self.gamma
 
 @compile(target="auto")
@@ -136,13 +123,11 @@ layer BatchNorm(num_features: Int):
   eps: Float = 1e-5
 
   fn forward(self, x: Tensor[B, num_features]) -> Tensor[B, num_features]:
-    // BatchNorm: normalize over batch dimension
-    // For training: use batch statistics and update running stats
-    // y = gamma * (x - mean) / sqrt(var + eps) + beta
-    let batch_mean = x * (1.0 / B)
+    let batch_mean = x.mean(0)
     let centered = x - batch_mean
-    let batch_var = centered * centered * (1.0 / B)
-    let std_inv = 1.0 / (batch_var + self.eps)
+    let sq = centered * centered
+    let batch_var = sq.mean(0)
+    let std_inv = 1.0 / sqrt(batch_var + self.eps)
     let normalized = centered * std_inv
     let out = normalized * self.gamma + self.beta
     return out

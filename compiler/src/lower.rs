@@ -617,6 +617,7 @@ impl Lowerer {
                         }
                         "relu" => return self.emit(func, IROp::ReLU, arg_ids, IRType::Tensor(vec![])),
                         "gelu" => return self.emit(func, IROp::GeLU, arg_ids, IRType::Tensor(vec![])),
+                        "sqrt" => return self.emit(func, IROp::Sqrt, arg_ids, IRType::Tensor(vec![])),
                         "softmax" => return self.emit(func, IROp::Softmax { dim: -1 }, arg_ids, IRType::Tensor(vec![])),
                         "sigmoid" => return self.emit(func, IROp::Sigmoid, arg_ids, IRType::Tensor(vec![])),
                         "tanh" => return self.emit(func, IROp::Tanh, arg_ids, IRType::Tensor(vec![])),
@@ -632,6 +633,7 @@ impl Lowerer {
                             }).unwrap_or(1);
                             return self.emit(func, IROp::Transpose(dim0, dim1), vec![arg_ids[0]], IRType::Tensor(vec![]));
                         }
+                        "update_row" => return self.emit(func, IROp::UpdateRow, arg_ids, IRType::Tensor(vec![])),
                         "print" => return self.emit(func, IROp::Print, arg_ids, IRType::Void),
                         "UNCERTAIN" | "Normal" | "Beta" | "GaussianNoise" => {
                             return self.emit(func, IROp::UncertainWrap, arg_ids, IRType::Uncertain(Box::new(IRType::F64)));
@@ -654,8 +656,30 @@ impl Lowerer {
                     Expr::Ident(n, _) => n.clone(),
                     Expr::Dot(d) => {
                         let receiver_id = self.lower_expr(func, &d.obj);
-                        arg_ids.insert(0, receiver_id);
-                        format!("{}_{}", "obj", d.field)
+                        match d.field.as_str() {
+                            "sum" => {
+                                let mut dim = None;
+                                if !c.args.is_empty() {
+                                    if let Expr::IntLit(val, _) = &c.args[0].value {
+                                        dim = Some(*val);
+                                    }
+                                }
+                                return self.emit(func, IROp::Sum { dim }, vec![receiver_id], IRType::Tensor(vec![]));
+                            }
+                            "mean" => {
+                                let mut dim = None;
+                                if !c.args.is_empty() {
+                                    if let Expr::IntLit(val, _) = &c.args[0].value {
+                                        dim = Some(*val);
+                                    }
+                                }
+                                return self.emit(func, IROp::Mean { dim }, vec![receiver_id], IRType::Tensor(vec![]));
+                            }
+                            _ => {
+                                arg_ids.insert(0, receiver_id);
+                                format!("{}_{}", "obj", d.field)
+                            }
+                        }
                     }
                     _ => "__call__".to_string(),
                 };

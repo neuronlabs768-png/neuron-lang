@@ -23,10 +23,10 @@ pub struct TapeEntry {
 /// Tape operations with the information needed for backward pass.
 #[derive(Clone)]
 pub enum TapeOp {
-    Add,
-    Sub,
-    Mul { a_data: Buffer, b_data: Buffer },
-    Div { a_data: Buffer, b_data: Buffer },
+    Add { a_shape: Vec<usize>, b_shape: Vec<usize> },
+    Sub { a_shape: Vec<usize>, b_shape: Vec<usize> },
+    Mul { a_data: Buffer, a_shape: Vec<usize>, b_data: Buffer, b_shape: Vec<usize> },
+    Div { a_data: Buffer, a_shape: Vec<usize>, b_data: Buffer, b_shape: Vec<usize> },
     MatMul { a_data: Buffer, a_shape: Vec<usize>, b_data: Buffer, b_shape: Vec<usize> },
     ReLU { input_data: Buffer },
     Sigmoid { output_data: Buffer },
@@ -34,8 +34,9 @@ pub enum TapeOp {
     GeLU { input_data: Buffer },
     Softmax { output_data: Buffer, dim: usize },
     Neg,
-    Sum,
-    Mean { n: usize },
+    Sum { input_shape: Vec<usize>, dim: Option<usize> },
+    Mean { input_shape: Vec<usize>, dim: Option<usize> },
+    Sqrt { output_data: Buffer },
     Reshape { original_shape: Vec<usize> },
     CrossEntropy { pred_softmax: Buffer, target: Buffer, batch_size: usize },
     MSE { pred: Buffer, target: Buffer, n: usize },
@@ -82,7 +83,8 @@ impl GradTape {
     pub fn add(&mut self, a: &Tensor, b: &Tensor) -> Tensor {
         let result = tensor_add(a, b);
         let out_id = self.alloc_id();
-        self.record(TapeOp::Add, vec![a.id, b.id], out_id, result.shape.clone());
+        self.record(TapeOp::Add { a_shape: a.shape.clone(), b_shape: b.shape.clone() },
+                    vec![a.id, b.id], out_id, result.shape.clone());
         let mut r = result;
         r.id = out_id;
         r.tape_entry = Some(self.entries.len() - 1);
@@ -93,7 +95,8 @@ impl GradTape {
     pub fn sub(&mut self, a: &Tensor, b: &Tensor) -> Tensor {
         let result = tensor_sub(a, b);
         let out_id = self.alloc_id();
-        self.record(TapeOp::Sub, vec![a.id, b.id], out_id, result.shape.clone());
+        self.record(TapeOp::Sub { a_shape: a.shape.clone(), b_shape: b.shape.clone() },
+                    vec![a.id, b.id], out_id, result.shape.clone());
         let mut r = result;
         r.id = out_id;
         r.tape_entry = Some(self.entries.len() - 1);
@@ -104,8 +107,10 @@ impl GradTape {
     pub fn mul(&mut self, a: &Tensor, b: &Tensor) -> Tensor {
         let result = tensor_mul(a, b);
         let out_id = self.alloc_id();
-        self.record(TapeOp::Mul { a_data: a.data.clone(), b_data: b.data.clone() },
-                    vec![a.id, b.id], out_id, result.shape.clone());
+        self.record(TapeOp::Mul {
+            a_data: a.data.clone(), a_shape: a.shape.clone(),
+            b_data: b.data.clone(), b_shape: b.shape.clone(),
+        }, vec![a.id, b.id], out_id, result.shape.clone());
         let mut r = result;
         r.id = out_id;
         r.tape_entry = Some(self.entries.len() - 1);
@@ -116,8 +121,10 @@ impl GradTape {
     pub fn div(&mut self, a: &Tensor, b: &Tensor) -> Tensor {
         let result = tensor_div(a, b);
         let out_id = self.alloc_id();
-        self.record(TapeOp::Div { a_data: a.data.clone(), b_data: b.data.clone() },
-                    vec![a.id, b.id], out_id, result.shape.clone());
+        self.record(TapeOp::Div {
+            a_data: a.data.clone(), a_shape: a.shape.clone(),
+            b_data: b.data.clone(), b_shape: b.shape.clone(),
+        }, vec![a.id, b.id], out_id, result.shape.clone());
         let mut r = result;
         r.id = out_id;
         r.tape_entry = Some(self.entries.len() - 1);
@@ -231,6 +238,39 @@ impl GradTape {
         r
     }
 
+    /// Run tracked sum.
+    pub fn sum(&mut self, a: &Tensor, dim: Option<usize>) -> Tensor {
+        let result = a.sum(dim);
+        let out_id = self.alloc_id();
+        self.record(TapeOp::Sum { input_shape: a.shape.clone(), dim }, vec![a.id], out_id, result.shape.clone());
+        let mut r = result;
+        r.id = out_id;
+        r.tape_entry = Some(self.entries.len() - 1);
+        r
+    }
+
+    /// Run tracked mean.
+    pub fn mean(&mut self, a: &Tensor, dim: Option<usize>) -> Tensor {
+        let result = a.mean(dim);
+        let out_id = self.alloc_id();
+        self.record(TapeOp::Mean { input_shape: a.shape.clone(), dim }, vec![a.id], out_id, result.shape.clone());
+        let mut r = result;
+        r.id = out_id;
+        r.tape_entry = Some(self.entries.len() - 1);
+        r
+    }
+
+    /// Run tracked sqrt.
+    pub fn sqrt(&mut self, a: &Tensor) -> Tensor {
+        let result = a.map(|x| x.sqrt());
+        let out_id = self.alloc_id();
+        self.record(TapeOp::Sqrt { output_data: result.data.clone() }, vec![a.id], out_id, result.shape.clone());
+        let mut r = result;
+        r.id = out_id;
+        r.tape_entry = Some(self.entries.len() - 1);
+        r
+    }
+
     /// Backward pass — compute gradients for all tensors on the tape.
     /// Starts from `loss_id` with gradient 1.0.
     pub fn backward(&mut self, loss_id: usize) {
@@ -272,37 +312,45 @@ impl GradTape {
                 None => continue, // No gradient flowing to this output
             };
 
-            match entry.op {
-                TapeOp::Add => {
-                    // dL/da = dL/dout, dL/db = dL/dout
-                    self.add_grad(entry.inputs[0], &out_grad);
-                    self.accumulate_grad(entry.inputs[1], out_grad);
+            match &entry.op {
+                TapeOp::Add { a_shape, b_shape } => {
+                    let grad_a = reduce_grad(&out_grad, &entry.output_shape, a_shape);
+                    let grad_b = reduce_grad(&out_grad, &entry.output_shape, b_shape);
+                    self.accumulate_grad(entry.inputs[0], grad_a);
+                    self.accumulate_grad(entry.inputs[1], grad_b);
                 }
-                TapeOp::Sub => {
-                    self.add_grad(entry.inputs[0], &out_grad);
+                TapeOp::Sub { a_shape, b_shape } => {
+                    let grad_a = reduce_grad(&out_grad, &entry.output_shape, a_shape);
                     let mut neg = Buffer::new(out_grad.len());
                     for (n, &g) in neg.iter_mut().zip(out_grad.iter()) { *n = -g; }
-                    self.accumulate_grad(entry.inputs[1], neg);
+                    let grad_b = reduce_grad(&neg, &entry.output_shape, b_shape);
+                    self.accumulate_grad(entry.inputs[0], grad_a);
+                    self.accumulate_grad(entry.inputs[1], grad_b);
                 }
-                TapeOp::Mul { a_data, b_data } => {
-                    // dL/da = dL/dout * b, dL/db = dL/dout * a
-                    let mut grad_a = Buffer::new(out_grad.len());
-                    for (g_a, (&g, &b)) in grad_a.iter_mut().zip(out_grad.iter().zip(b_data.iter())) {
+                TapeOp::Mul { a_data, a_shape, b_data, b_shape } => {
+                    let a_tensor = Tensor::new(a_data.clone(), a_shape.clone());
+                    let b_tensor = Tensor::new(b_data.clone(), b_shape.clone());
+                    let a_bc = a_tensor.broadcast_to(&entry.output_shape);
+                    let b_bc = b_tensor.broadcast_to(&entry.output_shape);
+                    
+                    let mut raw_grad_a = Buffer::new(out_grad.len());
+                    for (g_a, (&g, &b)) in raw_grad_a.iter_mut().zip(out_grad.iter().zip(b_bc.data.iter())) {
                         *g_a = g * b;
                     }
-                    let mut grad_b = Buffer::new(out_grad.len());
-                    for (g_b, (&g, &a)) in grad_b.iter_mut().zip(out_grad.iter().zip(a_data.iter())) {
+                    let mut raw_grad_b = Buffer::new(out_grad.len());
+                    for (g_b, (&g, &a)) in raw_grad_b.iter_mut().zip(out_grad.iter().zip(a_bc.data.iter())) {
                         *g_b = g * a;
                     }
+                    
+                    let grad_a = reduce_grad(&raw_grad_a, &entry.output_shape, a_shape);
+                    let grad_b = reduce_grad(&raw_grad_b, &entry.output_shape, b_shape);
                     self.accumulate_grad(entry.inputs[0], grad_a);
                     self.accumulate_grad(entry.inputs[1], grad_b);
                 }
                 TapeOp::MatMul { a_data, a_shape, b_data, b_shape } => {
-                    // dL/dA = dL/dC @ B^T
-                    // dL/dB = A^T @ dL/dC
-                    let a = Tensor::new(a_data, a_shape);
-                    let b = Tensor::new(b_data, b_shape);
-                    let grad_out = Tensor::new(out_grad, entry.output_shape);
+                    let a = Tensor::new(a_data.clone(), a_shape.clone());
+                    let b = Tensor::new(b_data.clone(), b_shape.clone());
+                    let grad_out = Tensor::new(out_grad, entry.output_shape.clone());
 
                     let b_t = b.transpose(b.ndim() - 2, b.ndim() - 1);
                     let grad_a = tensor_matmul(&grad_out, &b_t);
@@ -320,7 +368,6 @@ impl GradTape {
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
                 TapeOp::Sigmoid { output_data } => {
-                    // dsigmoid/dx = sigmoid * (1 - sigmoid)
                     let mut grad = Buffer::new(out_grad.len());
                     for (g_in, (&g, &s)) in grad.iter_mut().zip(out_grad.iter().zip(output_data.iter())) {
                         *g_in = g * s * (1.0 - s);
@@ -328,7 +375,6 @@ impl GradTape {
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
                 TapeOp::Tanh { output_data } => {
-                    // dtanh/dx = 1 - tanh^2
                     let mut grad = Buffer::new(out_grad.len());
                     for (g_in, (&g, &t)) in grad.iter_mut().zip(out_grad.iter().zip(output_data.iter())) {
                         *g_in = g * (1.0 - t * t);
@@ -336,17 +382,16 @@ impl GradTape {
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
                 TapeOp::GeLU { input_data } => {
-                    // Approximate GeLU gradient
                     let mut grad = Buffer::new(out_grad.len());
                     for (g_in, (&g, &x)) in grad.iter_mut().zip(out_grad.iter().zip(input_data.iter())) {
-                        let cdf = 0.5 * (1.0 + erf_approx(x / std::f64::consts::SQRT_2));
-                        let pdf = (-x * x / 2.0).exp() / (2.0 * std::f64::consts::PI).sqrt();
+                        let cdf = 0.5 * (1.0 + erf_approx(x / 2.0f64.sqrt()));
+                        let pdf = (-0.5 * x * x).exp() / (2.0 * std::f64::consts::PI).sqrt();
                         *g_in = g * (cdf + x * pdf);
                     }
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
-                TapeOp::Softmax { output_data, dim: _ } => {
-                    let last_dim = entry.output_shape.last().copied().unwrap_or(1);
+                TapeOp::Softmax { output_data, dim } => {
+                    let last_dim = entry.output_shape[*dim];
                     let outer = output_data.len() / last_dim;
                     let mut grad_input = Buffer::new(output_data.len());
                     for i in 0..outer {
@@ -369,25 +414,117 @@ impl GradTape {
                     }
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
-                TapeOp::Sum => {
-                    let mut grad = Buffer::new(entry.output_shape.iter().product::<usize>().max(1));
-                    for g in grad.iter_mut() {
-                        *g = out_grad[0];
+                TapeOp::Sum { input_shape, dim } => {
+                    let mut grad = Buffer::new(input_shape.iter().product::<usize>().max(1));
+                    match dim {
+                        None => {
+                            let val = out_grad[0];
+                            for g in grad.iter_mut() {
+                                *g = val;
+                            }
+                        }
+                        Some(d) => {
+                            let mut out_shape = input_shape.clone();
+                            out_shape[*d] = 1;
+                            let mut out_strides = vec![1; out_shape.len()];
+                            for j in (0..out_shape.len().saturating_sub(1)).rev() {
+                                out_strides[j] = out_strides[j + 1] * out_shape[j + 1];
+                            }
+                            
+                            let mut in_strides = vec![1; input_shape.len()];
+                            for j in (0..input_shape.len().saturating_sub(1)).rev() {
+                                in_strides[j] = in_strides[j + 1] * input_shape[j + 1];
+                            }
+
+                            for i in 0..grad.len() {
+                                let mut coords = vec![0; input_shape.len()];
+                                let mut temp = i;
+                                for j in 0..input_shape.len() {
+                                    coords[j] = temp / in_strides[j];
+                                    temp %= in_strides[j];
+                                }
+                                let mut out_coords = coords.clone();
+                                out_coords[*d] = 0;
+                                let out_idx: usize = out_coords.iter().zip(out_strides.iter()).map(|(c, s)| c * s).sum();
+                                grad[i] = out_grad[out_idx];
+                            }
+                        }
                     }
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
-                TapeOp::Mean { n } => {
-                    let scale = 1.0 / n as f64;
-                    let mut grad = Buffer::new(out_grad.len());
-                    for (g_in, &g) in grad.iter_mut().zip(out_grad.iter()) {
-                        *g_in = g * scale;
+                TapeOp::Mean { input_shape, dim } => {
+                    let mut grad = Buffer::new(input_shape.iter().product::<usize>().max(1));
+                    match dim {
+                        None => {
+                            let n = input_shape.iter().product::<usize>() as f64;
+                            let scale = if n > 0.0 { 1.0 / n } else { 0.0 };
+                            let val = out_grad[0] * scale;
+                            for g in grad.iter_mut() {
+                                *g = val;
+                            }
+                        }
+                        Some(d) => {
+                            let count = input_shape[*d] as f64;
+                            let scale = if count > 0.0 { 1.0 / count } else { 0.0 };
+                            
+                            let mut out_shape = input_shape.clone();
+                            out_shape[*d] = 1;
+                            let mut out_strides = vec![1; out_shape.len()];
+                            for j in (0..out_shape.len().saturating_sub(1)).rev() {
+                                out_strides[j] = out_strides[j + 1] * out_shape[j + 1];
+                            }
+                            
+                            let mut in_strides = vec![1; input_shape.len()];
+                            for j in (0..input_shape.len().saturating_sub(1)).rev() {
+                                in_strides[j] = in_strides[j + 1] * input_shape[j + 1];
+                            }
+
+                            for i in 0..grad.len() {
+                                let mut coords = vec![0; input_shape.len()];
+                                let mut temp = i;
+                                for j in 0..input_shape.len() {
+                                    coords[j] = temp / in_strides[j];
+                                    temp %= in_strides[j];
+                                }
+                                let mut out_coords = coords.clone();
+                                out_coords[*d] = 0;
+                                let out_idx: usize = out_coords.iter().zip(out_strides.iter()).map(|(c, s)| c * s).sum();
+                                grad[i] = out_grad[out_idx] * scale;
+                            }
+                        }
                     }
                     self.accumulate_grad(entry.inputs[0], grad);
+                }
+                TapeOp::Sqrt { output_data } => {
+                    let mut grad = Buffer::new(out_grad.len());
+                    for (g_in, (&g, &y)) in grad.iter_mut().zip(out_grad.iter().zip(output_data.iter())) {
+                        *g_in = if y > 1e-10 { g * 0.5 / y } else { 0.0 };
+                    }
+                    self.accumulate_grad(entry.inputs[0], grad);
+                }
+                TapeOp::Div { a_data, a_shape, b_data, b_shape } => {
+                    let a_tensor = Tensor::new(a_data.clone(), a_shape.clone());
+                    let b_tensor = Tensor::new(b_data.clone(), b_shape.clone());
+                    let a_bc = a_tensor.broadcast_to(&entry.output_shape);
+                    let b_bc = b_tensor.broadcast_to(&entry.output_shape);
+                    
+                    let mut raw_grad_a = Buffer::new(out_grad.len());
+                    for (g_a, (&g, &b)) in raw_grad_a.iter_mut().zip(out_grad.iter().zip(b_bc.data.iter())) {
+                        *g_a = if b.abs() > 1e-15 { g / b } else { 0.0 };
+                    }
+                    let mut raw_grad_b = Buffer::new(out_grad.len());
+                    for (g_b, ((&g, &a), &b)) in raw_grad_b.iter_mut().zip(out_grad.iter().zip(a_bc.data.iter()).zip(b_bc.data.iter())) {
+                        *g_b = if b.abs() > 1e-15 { -g * a / (b * b) } else { 0.0 };
+                    }
+                    
+                    let grad_a = reduce_grad(&raw_grad_a, &entry.output_shape, a_shape);
+                    let grad_b = reduce_grad(&raw_grad_b, &entry.output_shape, b_shape);
+                    self.accumulate_grad(entry.inputs[0], grad_a);
+                    self.accumulate_grad(entry.inputs[1], grad_b);
                 }
                 TapeOp::CrossEntropy { pred_softmax, target, batch_size } => {
-                    // dL/d_logits = out_grad[0] * (softmax - target) / batch_size
                     let mut grad = Buffer::new(pred_softmax.len());
-                    let scale = batch_size as f64;
+                    let scale = *batch_size as f64;
                     let out_g = out_grad[0];
                     for (g_in, (&s, &t)) in grad.iter_mut().zip(pred_softmax.iter().zip(target.iter())) {
                         *g_in = out_g * (s - t) / scale;
@@ -395,28 +532,13 @@ impl GradTape {
                     self.accumulate_grad(entry.inputs[0], grad);
                 }
                 TapeOp::MSE { pred, target, n } => {
-                    // dL/d_pred = out_grad[0] * 2 * (pred - target) / n
                     let mut grad = Buffer::new(pred.len());
-                    let scale = n as f64;
+                    let scale = *n as f64;
                     let out_g = out_grad[0];
                     for (g_in, (&p, &t)) in grad.iter_mut().zip(pred.iter().zip(target.iter())) {
                         *g_in = out_g * 2.0 * (p - t) / scale;
                     }
                     self.accumulate_grad(entry.inputs[0], grad);
-                }
-                TapeOp::Div { a_data, b_data } => {
-                    // dL/da = out_grad / b
-                    // dL/db = -out_grad * a / b^2
-                    let mut grad_a = Buffer::new(out_grad.len());
-                    for (g_a, (&g, &b)) in grad_a.iter_mut().zip(out_grad.iter().zip(b_data.iter())) {
-                        *g_a = g / b;
-                    }
-                    let mut grad_b = Buffer::new(out_grad.len());
-                    for (g_b, ((&g, &a), &b)) in grad_b.iter_mut().zip(out_grad.iter().zip(a_data.iter()).zip(b_data.iter())) {
-                        *g_b = -g * a / (b * b);
-                    }
-                    self.accumulate_grad(entry.inputs[0], grad_a);
-                    self.accumulate_grad(entry.inputs[1], grad_b);
                 }
                 TapeOp::Reshape { .. } => {
                     self.accumulate_grad(entry.inputs[0], out_grad);
@@ -491,6 +613,7 @@ impl GradTape {
         }
     }
 
+    #[allow(dead_code)]
     fn add_grad(&mut self, id: usize, grad: &[f64]) {
         while self.grads.len() <= id {
             self.grads.push(None);
@@ -604,6 +727,37 @@ impl SGD {
             }
         }
     }
+}
+
+fn reduce_grad(grad: &Buffer, current_shape: &[usize], target_shape: &[usize]) -> Buffer {
+    if current_shape == target_shape {
+        return grad.clone();
+    }
+    let mut current_t = Tensor::new(grad.clone(), current_shape.to_vec());
+    let ndim = current_shape.len();
+    let target_ndim = target_shape.len();
+    let offset = ndim.saturating_sub(target_ndim);
+    
+    let mut padded_target_shape = vec![1; ndim];
+    for i in 0..target_ndim {
+        padded_target_shape[i + offset] = target_shape[i];
+    }
+    
+    for i in (0..ndim).rev() {
+        if padded_target_shape[i] == 1 && current_t.shape[i] > 1 {
+            current_t = current_t.sum(Some(i));
+        }
+    }
+    
+    let mut out_data = current_t.data;
+    let expected_len = target_shape.iter().product::<usize>();
+    if out_data.len() != expected_len {
+        let mut new_buf = Buffer::new(expected_len);
+        let copy_len = out_data.len().min(expected_len);
+        new_buf[..copy_len].copy_from_slice(&out_data[..copy_len]);
+        out_data = new_buf;
+    }
+    out_data
 }
 
 #[cfg(test)]

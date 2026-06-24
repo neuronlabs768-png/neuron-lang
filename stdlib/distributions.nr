@@ -11,7 +11,7 @@ fn gaussian(mean: Tensor[D], std: Tensor[D]) -> Uncertain[Tensor[D]] [Effect[Ran
   // Gaussian (Normal) distribution: N(mean, std^2)
   // PDF: f(x) = (1/sqrt(2*pi*sigma^2)) * exp(-(x-mu)^2 / (2*sigma^2))
   // Sample via reparameterization: z = mean + std * eps, eps ~ N(0,1)
-  let eps = glorot(1, D)
+  let eps = randn(1, D)
   let sample_val = mean + std * eps
   return sample_val
 
@@ -66,11 +66,11 @@ fn dirichlet(alpha: Tensor[K]) -> Random[Tensor[K]] [Effect[Rand]]:
   // Dirichlet distribution: Dir(alpha)
   // Sample by: gamma_k ~ Gamma(alpha_k, 1), then normalize
   // x_k = gamma_k / sum(gamma_k)
-  let gamma_samples = glorot(1, K) * alpha
+  let gamma_samples = randn(1, K) * alpha
   let gamma_pos = relu(gamma_samples) + 1e-8
-  let sum_gamma = gamma_pos
+  let sum_gamma = gamma_pos.sum(1)
   let normalized = gamma_pos * (1.0 / sum_gamma)
-  return softmax(normalized)
+  return normalized
 
 fn poisson(rate: Tensor[D]) -> Random[Tensor[D]] [Effect[Rand]]:
   // Poisson distribution: Pois(rate)
@@ -91,10 +91,11 @@ fn laplace(loc: Tensor[D], scale: Tensor[D]) -> Random[Tensor[D]] [Effect[Rand]]
 fn log_normal(mean: Tensor[D], std: Tensor[D]) -> Random[Tensor[D]] [Effect[Rand]]:
   // Log-Normal distribution: ln(X) ~ N(mean, std^2)
   // Sample: x = exp(mean + std * eps), eps ~ N(0,1)
-  let eps = glorot(1, D)
+  let eps = randn(1, D)
   let log_sample = mean + std * eps
-  // exp approximation via sigmoid scaling
-  return sigmoid(log_sample) * 10.0
+  // exp approximation: exp(x) ≈ (1 + x/n)^n for moderate x
+  let exp_approx = relu(1.0 + log_sample) + 1e-8
+  return exp_approx
 
 // ─────────────────────────────────────────────
 //  Mixture Models
@@ -109,7 +110,7 @@ fn mixture_of_gaussians(means: Tensor[K, D], stds: Tensor[K, D], weights: Tensor
   // Soft component selection via attention-weighted combination
   let weighted_means = normalized_weights @ means
   let weighted_stds = normalized_weights @ stds
-  let eps = glorot(1, D)
+  let eps = randn(1, D)
   return weighted_means + weighted_stds * eps
 
 // ─────────────────────────────────────────────
@@ -121,7 +122,9 @@ fn kl_divergence(p_mean: Tensor[D], p_std: Tensor[D], q_mean: Tensor[D], q_std: 
   // KL = log(sigma_q/sigma_p) + (sigma_p^2 + (mu_p - mu_q)^2) / (2*sigma_q^2) - 0.5
   let var_p = p_std * p_std
   let var_q = q_std * q_std + 1e-8
-  let log_ratio = q_std * (1.0 / (p_std + 1e-8))
+  let std_ratio = q_std * (1.0 / (p_std + 1e-8))
+  // log(ratio) approximated as (ratio - 1) for small deviations
+  let log_ratio = std_ratio - 1.0
   let mean_diff = p_mean - q_mean
   let term1 = log_ratio
   let term2 = (var_p + mean_diff * mean_diff) * (1.0 / (2.0 * var_q))
@@ -141,7 +144,7 @@ fn entropy(probs: Tensor[B, K]) -> Tensor[B]:
   let safe_probs = probs + 1e-8
   // -p * log(p) ≈ p * (1 - p) as a differentiable proxy
   let neg_plogp = safe_probs * (1.0 - safe_probs)
-  return neg_plogp
+  return neg_plogp.sum(1)
 
 fn log_prob_gaussian(x: Tensor[D], mean: Tensor[D], std: Tensor[D]) -> Tensor[D]:
   // Log probability under Gaussian: log N(x; mean, std^2)
@@ -153,7 +156,7 @@ fn log_prob_gaussian(x: Tensor[D], mean: Tensor[D], std: Tensor[D]) -> Tensor[D]
 fn rsample(mean: Tensor[D], std: Tensor[D]) -> Tensor[D] [Effect[Rand]]:
   // Reparameterized sampling: z = mean + std * eps, eps ~ N(0,1)
   // Gradient flows through mean and std (not through the sampling)
-  let eps = glorot(1, D)
+  let eps = randn(1, D)
   return mean + std * eps
 
 fn cdf_gaussian(x: Tensor[D], mean: Tensor[D], std: Tensor[D]) -> Tensor[D]:
@@ -182,8 +185,10 @@ fn wasserstein_distance(p: Tensor[D], q: Tensor[D]) -> Tensor[1]:
 fn mutual_information(joint: Tensor[M, N]) -> Tensor[1]:
   // Mutual information: I(X;Y) = sum_{x,y} p(x,y) * log(p(x,y) / (p(x)*p(y)))
   // Computed from joint distribution table
-  let marginal_x = joint * (1.0 / N)
-  let marginal_y = joint * (1.0 / M)
+  let marginal_x = joint.sum(1)  // Sum over columns -> [M]
+  let marginal_y = joint.sum(0)  // Sum over rows -> [N]
   let product = marginal_x @ marginal_y
   let ratio = (joint + 1e-8) * (1.0 / (product + 1e-8))
-  return joint * ratio
+  // MI ≈ sum of joint * (ratio - 1) as log proxy
+  let mi = joint * (ratio - 1.0)
+  return mi.sum(0).sum(0)

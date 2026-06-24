@@ -23,13 +23,14 @@ agent EpisodicMemorySystem(embed_dim: Int, capacity: Int):
   memory: EpisodicMemory[Tensor[embed_dim]]
 
   fn push(self, key: Tensor[embed_dim], value: Tensor[embed_dim]) [Effect[Mut[self]]]:
-    // Store new memory entry
-    // If at capacity, overwrite least-recently-used entry
-    // keys[write_pos] = key
-    // values[write_pos] = value
-    // timestamps[write_pos] = current_time
-    // access_counts[write_pos] = 0
-    // write_pos = (write_pos + 1) % capacity
+    // Store new memory entry at write_pos, overwriting oldest if at capacity
+    update_row(self.keys, self.write_pos, key)
+    update_row(self.values, self.write_pos, value)
+    update_row(self.timestamps, self.write_pos, self.current_time)
+    update_row(self.access_counts, self.write_pos, 0.0)
+    self.write_pos = self.write_pos + 1
+    self.current_size = self.current_size + 1
+    self.current_time = self.current_time + 1
     store(self.memory, key)
 
   fn recall_op(self, query: Tensor[embed_dim], k: Int) -> Tensor[k, embed_dim]:
@@ -56,16 +57,27 @@ agent EpisodicMemorySystem(embed_dim: Int, capacity: Int):
   fn consolidate(self) [Effect[Mut[self]]]:
     // Memory consolidation: merge similar memories, strengthen important ones
     // 1. Compute pairwise similarity between all memories
-    // 2. Merge entries with similarity > threshold
-    // 3. Update importance scores based on access frequency
-    let similarity = self.keys @ self.keys  // Pairwise dot product
-    let importance = self.access_counts * sigmoid(similarity)
+    // 2. Strengthen important memories based on access frequency
+    // 3. Decay unimportant memories
+    let key_norms = (self.keys * self.keys).sum(1) + 1e-8
+    let normalized_keys = self.keys * (1.0 / sqrt(key_norms))
+    let similarity = normalized_keys @ normalized_keys  // Cosine similarity matrix
+    // Importance = access frequency weighted by recency
+    let time_diff = self.current_time - self.timestamps
+    let recency = sigmoid(time_diff * (-0.01))
+    let importance = self.access_counts * recency
+    // Strengthen important memories, decay unimportant ones
+    let importance_weight = sigmoid(importance - 1.0)
+    self.values = self.values * (0.9 + 0.1 * importance_weight)
 
   fn forget_old(self, max_age: Int) [Effect[Mut[self]]]:
-    // Remove memories older than max_age
-    // Or: apply exponential decay to old memories
+    // Apply exponential decay to memories older than max_age
+    // Memories that exceed max_age have their values attenuated
     let age = self.current_time - self.timestamps
     let keep_mask = sigmoid((max_age - age) * 10.0)
+    // Attenuate old memories rather than hard-deleting
+    self.keys = self.keys * keep_mask
+    self.values = self.values * keep_mask
 
 agent SemanticMemorySystem(embed_dim: Int, capacity: Int):
   // Knowledge graph-style semantic memory
@@ -80,6 +92,10 @@ agent SemanticMemorySystem(embed_dim: Int, capacity: Int):
 
   fn store_fact(self, subject: Tensor[embed_dim], relation: Tensor[embed_dim], obj: Tensor[embed_dim]) [Effect[Mut[self]]]:
     // Store a semantic triple (s, r, o) in the knowledge graph
+    update_row(self.subjects, self.write_pos, subject)
+    update_row(self.relations, self.write_pos, relation)
+    update_row(self.objects, self.write_pos, obj)
+    self.write_pos = self.write_pos + 1
     store(self.memory, subject)
 
   fn query(self, subject: Tensor[embed_dim], relation: Tensor[embed_dim]) -> Tensor[embed_dim]:
@@ -99,8 +115,18 @@ agent SemanticMemorySystem(embed_dim: Int, capacity: Int):
 
   fn merge_knowledge(self, other_subjects: Tensor[M, embed_dim], other_relations: Tensor[M, embed_dim], other_objects: Tensor[M, embed_dim]) [Effect[Mut[self]]]:
     // Merge knowledge from another semantic memory
-    // Deduplicate: skip triples that are already stored (high similarity)
-    let dummy = 0
+    // Compute similarity between existing and new triples
+    let sim = self.subjects @ other_subjects  // [capacity, M] similarity
+    // Only add triples that are sufficiently novel (low similarity)
+    let novelty = 1.0 - sigmoid(sim * 10.0)  // High when dissimilar
+    let novelty_scores = novelty.mean(0)  // Average novelty per new triple
+    // Weight new triples by their novelty before incorporating
+    let weighted_subjects = other_subjects * novelty_scores
+    let weighted_objects = other_objects * novelty_scores
+    // Blend novel triples into existing memory via soft update
+    let blend_rate = 0.1
+    self.subjects = self.subjects + weighted_subjects * blend_rate
+    self.objects = self.objects + weighted_objects * blend_rate
 
 agent WorkingMemorySystem(embed_dim: Int, num_slots: Int):
   // Fixed-capacity working memory with attention-based read/write
@@ -124,7 +150,7 @@ agent WorkingMemorySystem(embed_dim: Int, num_slots: Int):
     return attn @ self.slots
 
   fn write(self, content: Tensor[embed_dim]) [Effect[Mut[self]]]:
-    // Write to memory via gated update
+    // Write to memory via gated update (DNC-style)
     // 1. Compute write attention: where to write
     //    w = sigmoid(content @ write_gate)
     // 2. Compute erase vector: what to forget
@@ -132,9 +158,9 @@ agent WorkingMemorySystem(embed_dim: Int, num_slots: Int):
     // 3. Update: slots = slots * (1 - w * e) + w * content
     let write_attn = sigmoid(content @ self.write_gate)
     let erase_vec = sigmoid(content @ self.erase_gate)
-    // Erase then write
+    // Erase then write — save result back to self.slots
     let erased = self.slots * (1.0 - write_attn * erase_vec)
-    let written = erased + write_attn * content
+    self.slots = erased + write_attn * content
 
   fn update_attention(self, context: Tensor[embed_dim]) [Effect[Mut[self]]]:
     // Update slot attention weights based on current context
@@ -144,7 +170,7 @@ agent WorkingMemorySystem(embed_dim: Int, num_slots: Int):
 
   fn clear(self) [Effect[Mut[self]]]:
     // Zero out all memory slots
-    let dummy = 0
+    self.slots = zeros(num_slots, embed_dim)
 
 // ─────────────────────────────────────────────
 //  Meta-Learning
@@ -421,7 +447,7 @@ fn multi_objective_reward(rewards: Tensor[B, K], weights: Tensor[K]) -> Tensor[B
   // Scalarize multiple reward signals into single reward
   // r_combined = sum_k w_k * r_k (weighted sum)
   let weighted = rewards * weights
-  return weighted
+  return weighted.sum(1)
 
 fn preference_reward(state: Tensor[B, S], preference_model: Tensor[S, 1]) -> Tensor[B, 1]:
   // RLHF-style reward from learned preference model
