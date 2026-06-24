@@ -127,7 +127,7 @@ model LinearNet:
   const terminalBody = document.getElementById("terminal-body");
   const runBtn = document.getElementById("run-btn");
   const copyBtn = document.getElementById("copy-btn");
-  const navToggle = document.getElementById("nav-toggle-btn");
+  const navToggle = document.getElementById("nav-toggle");
   const navLinks = document.querySelector(".nav-links");
 
   // 6. Initialize UI
@@ -247,10 +247,12 @@ model LinearNet:
   });
 
   // 10. Mobile Navbar Toggle
-  navToggle.addEventListener("click", () => {
-    navLinks.style.display = navLinks.style.display === "flex" ? "none" : "flex";
-    navToggle.classList.toggle("active");
-  });
+  if (navToggle) {
+    navToggle.addEventListener("click", () => {
+      navLinks.classList.toggle("open");
+      navToggle.classList.toggle("active");
+    });
+  }
 
   // 11. FAQ Accordion Event Listeners
   const faqItems = document.querySelectorAll(".faq-item");
@@ -381,6 +383,88 @@ model LinearNet:
         waitlistSubmitBtn.textContent = originalBtnText;
         waitlistSubmitBtn.style.opacity = "1";
       });
+    });
+  }
+
+  // 14. Scroll Reveal Observer
+  const revealElements = document.querySelectorAll(".reveal");
+  if (revealElements.length > 0 && 'IntersectionObserver' in window) {
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("revealed");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: "0px 0px -40px 0px"
+    });
+    revealElements.forEach(el => revealObserver.observe(el));
+  } else {
+    revealElements.forEach(el => el.classList.add("revealed"));
+  }
+
+  // 15. Premium Cursor-Tracking Hover Effect
+  const cards = document.querySelectorAll(".feature-card, .pricing-card, .benchmark-card, .cta-card");
+  cards.forEach(card => {
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty("--mouse-x", `${x}px`);
+      card.style.setProperty("--mouse-y", `${y}px`);
+    });
+  });
+
+  // 16. Stats Count-Up Animation
+  const statsElements = document.querySelectorAll(".hero-stat-value");
+  if (statsElements.length > 0 && 'IntersectionObserver' in window) {
+    const statsObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const stat = entry.target;
+          const target = parseInt(stat.getAttribute("data-target"));
+          if (isNaN(target)) return;
+          if (target === 0) {
+            stat.textContent = "0";
+            observer.unobserve(stat);
+            return;
+          }
+          let current = 0;
+          const duration = 1500;
+          const steps = 50;
+          const stepTime = duration / steps;
+          const increment = target / steps;
+          
+          let step = 0;
+          const timer = setInterval(() => {
+            current += increment;
+            step++;
+            if (step >= steps) {
+              clearInterval(timer);
+              if (target >= 100000) {
+                stat.textContent = "100k+";
+              } else {
+                stat.textContent = Math.round(target).toString();
+              }
+            } else {
+              if (target >= 100000) {
+                stat.textContent = Math.round(current / 1000) + "k+";
+              } else {
+                stat.textContent = Math.round(current).toString();
+              }
+            }
+          }, stepTime);
+          observer.unobserve(stat);
+        }
+      });
+    }, { threshold: 0.2 });
+    statsElements.forEach(el => statsObserver.observe(el));
+  } else {
+    statsElements.forEach(el => {
+      const target = el.getAttribute("data-target");
+      el.textContent = target === "100000" ? "100k+" : target;
     });
   }
 

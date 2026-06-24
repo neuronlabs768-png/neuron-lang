@@ -29,7 +29,21 @@
   <header class="navbar">
     <div class="container navbar-container">
       <a href="index.html" class="logo">
-        <img src="neuron_github_logo.png" alt="Neuron Labs" class="logo-img">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+          <defs>
+            <linearGradient id="logo-grad-paper" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="50%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+          <path d="M8 24V8L16 16L24 8V24" stroke="url(#logo-grad-paper)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="8" cy="8" r="2" fill="#8b5cf6" />
+          <circle cx="8" cy="24" r="2" fill="#a78bfa" />
+          <circle cx="16" cy="16" r="2" fill="#3b82f6" />
+          <circle cx="24" cy="8" r="2" fill="#22d3ee" />
+          <circle cx="24" cy="24" r="2" fill="#38bdf8" />
+        </svg>
         <span>NEURON</span>
       </a>
       <nav>
@@ -91,7 +105,21 @@
       <div class="footer-grid">
         <div class="footer-info">
           <a href="index.html" class="logo">
-            <img src="neuron_github_logo.png" alt="Neuron Labs" class="logo-img">
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+              <defs>
+                <linearGradient id="logo-grad-paper-footer" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#8b5cf6" />
+                  <stop offset="50%" stop-color="#3b82f6" />
+                  <stop offset="100%" stop-color="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <path d="M8 24V8L16 16L24 8V24" stroke="url(#logo-grad-paper-footer)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="8" cy="8" r="2" fill="#8b5cf6" />
+              <circle cx="8" cy="24" r="2" fill="#a78bfa" />
+              <circle cx="16" cy="16" r="2" fill="#3b82f6" />
+              <circle cx="24" cy="8" r="2" fill="#22d3ee" />
+              <circle cx="24" cy="24" r="2" fill="#38bdf8" />
+            </svg>
             <span>NEURON</span>
           </a>
           <p>The type-safe programming language for trustworthy AI.</p>
@@ -123,10 +151,12 @@
       const navLinks = document.getElementById("nav-links");
 
       // Mobile Menu Toggle
-      navToggleBtn.addEventListener("click", () => {
-        navLinks.style.display = navLinks.style.display === "flex" ? "none" : "flex";
-        navToggleBtn.classList.toggle("active");
-      });
+      if (navToggleBtn) {
+        navToggleBtn.addEventListener("click", () => {
+          navLinks.classList.toggle("open");
+          navToggleBtn.classList.toggle("active");
+        });
+      }
 
       // Math parsing state
       const mathBlocks = [];
