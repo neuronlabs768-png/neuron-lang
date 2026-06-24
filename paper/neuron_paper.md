@@ -37,7 +37,7 @@ We make the following claims and note their boundaries:
 
 - **Claim 4**: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with unified memory. *Boundary*: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
 
-- **Not yet implemented**: Cross-module type inference (imported symbols currently receive type `Any`), formal soundness proof.
+- **Not yet implemented**: Formal soundness proof.
 
 ### 1.2 Contributions
 
@@ -424,7 +424,6 @@ The loss decreases monotonically, and the weight converges to 3.0006 (target: 3.
 - It does not verify that a causal graph is *correct* — only that the program uses `observed` and `intervened` values consistently with the declared graph.
 - It does not prove that a temporal annotation is *accurate* — only that the program does not pass `future_to_past` data where `past_to_future` is expected.
 - It does not guarantee that uncertainty bounds are *calibrated* — only that the program checks confidence before using uncertain values.
-- It does not type-check across module boundaries. Imported symbols currently receive type `Any`.
 - It has not been benchmarked for execution speed against production frameworks.
 - The temporal type system uses a binary direction model that does not compose offsets algebraically (see §3.1.1 for discussion).
 
@@ -433,7 +432,6 @@ These are deliberate design boundaries. The type system enforces *structural* co
 ### Future work
 
 - **Offset-based temporal types** (§3.1.1): Extending the binary model to integer offsets with algebraic composition.
-- **Cross-module type inference**: Propagating types across `import` boundaries.
 - **Multi-device and Distributed GPU execution**: While the JIT compiler now supports single-device CUDA generation with operator fusion, scaling memory management and coordination to multi-GPU clusters is future work.
 - **Formal soundness proof**: Proving type safety for the temporal and causal rules.
 

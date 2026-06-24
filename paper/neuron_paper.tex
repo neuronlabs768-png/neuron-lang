@@ -96,7 +96,7 @@ We make the following claims and note their boundaries:
 
   \item \textbf{Claim 4}: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with unified memory. \emph{Boundary}: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
   
-  \item \textbf{Not yet implemented}: Cross-module type inference (imported symbols currently receive type \ty{Any}), formal soundness proof.
+  \item \textbf{Not yet implemented}: Formal soundness proof.
 \end{itemize}
 
 \subsection{Contributions}
@@ -402,11 +402,11 @@ JIT parity & Random programs, VM vs JIT & 100 & All identical \\
 
 \section{Discussion}
 
-\textbf{What this system does not do.} It does not verify that a causal graph is \emph{correct}---only that observed and intervened values are not mixed. It does not prove that temporal annotations are \emph{accurate}---only that future-typed data does not flow into past-only contexts. It does not guarantee uncertainty bounds are \emph{calibrated}---only that confidence is checked before use. It does not type-check across module boundaries. It has not been benchmarked for speed.
+\textbf{What this system does not do.} It does not verify that a causal graph is \emph{correct}---only that observed and intervened values are not mixed. It does not prove that temporal annotations are \emph{accurate}---only that future-typed data does not flow into past-only contexts. It does not guarantee uncertainty bounds are \emph{calibrated}---only that confidence is checked before use. It has not been benchmarked for speed.
 
 The type system enforces \emph{structural} correctness---whether the right kinds of values flow to the right places---not \emph{semantic} correctness---whether the values themselves are accurate.
 
-\textbf{Future work.} Offset-based temporal types (\S\ref{sec:temporal}), cross-module type inference, multi-device and distributed GPU execution, and formal soundness proof.
+\textbf{Future work.} Offset-based temporal types (\S\ref{sec:temporal}), multi-device and distributed GPU execution, and formal soundness proof.
 
 % ═══════════════════════════════════════════════
 %  8. CONCLUSION

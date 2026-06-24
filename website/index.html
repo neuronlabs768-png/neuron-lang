@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="NEURON is a statically typed, natively differentiable programming language. It catches temporal leaks, causal confusion, and uncertainty propagation errors at compile time.">
-  <meta name="keywords" content="NEURON, programming language, machine learning, compiler, automatic differentiation, temporal type system, causal inference, do-calculus, BSL license">
-  <title>NEURON — The Type-Safe Programming Language for Trustworthy AI</title>
+  <meta name="description" content="NEURON is a statically typed, natively differentiable programming language for AI. It catches temporal leaks, causal confusion, and uncertainty errors at compile time. Built-in CUDA GPU acceleration.">
+  <meta name="keywords" content="NEURON, programming language, machine learning, compiler, automatic differentiation, temporal types, causal inference, CUDA, GPU, type safety">
+  <title>NEURON — The Language That Makes AI Think Differently</title>
   <link rel="stylesheet" href="style.css">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="NEURON — The Type-Safe Programming Language for Trustworthy AI">
-  <meta property="og:description" content="Natively differentiable programming language that prevents AI bugs at compile time using advanced temporal and causal type systems.">
+  <meta property="og:title" content="NEURON — The Language That Makes AI Think Differently">
+  <meta property="og:description" content="Statically typed, natively differentiable programming language that prevents AI bugs at compile time. Built-in CUDA GPU acceleration.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://neuronlabs-ai.github.io/neuron-lang/neuron_github_logo.png">
   <meta name="twitter:card" content="summary_large_image">
@@ -18,279 +16,323 @@
 </head>
 <body>
 
-  <!-- 1. Header & Navigation -->
+  <!-- ═══ Navigation ═══ -->
   <header class="navbar">
-    <div class="container navbar-container">
+    <div class="container navbar-inner">
       <a href="#" class="logo">
-        <img src="neuron_github_logo.png" alt="Neuron Labs" class="logo-img">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="50%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+          <path d="M8 24V8L16 16L24 8V24" stroke="url(#logo-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="8" cy="8" r="2" fill="#8b5cf6" />
+          <circle cx="8" cy="24" r="2" fill="#a78bfa" />
+          <circle cx="16" cy="16" r="2" fill="#3b82f6" />
+          <circle cx="24" cy="8" r="2" fill="#22d3ee" />
+          <circle cx="24" cy="24" r="2" fill="#38bdf8" />
+        </svg>
         <span>NEURON</span>
       </a>
       <nav>
-        <ul class="nav-links">
+        <ul class="nav-links" id="nav-links">
           <li><a href="#features">Features</a></li>
           <li><a href="#playground">Playground</a></li>
           <li><a href="#architecture">Architecture</a></li>
-          <li><a href="#comparison">Comparison</a></li>
           <li><a href="#benchmarks">Benchmarks</a></li>
-          <li><a href="#faq">FAQ</a></li>
           <li><a href="#pricing">Pricing</a></li>
-          <li><a href="#licensing">Licensing</a></li>
-          <li>
-            <a href="paper.html" target="_blank" class="nav-btn nav-btn-secondary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-              Paper
-            </a>
-          </li>
-          <li>
-            <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="nav-btn nav-btn-primary">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-              GitHub
-            </a>
-          </li>
         </ul>
-        <button class="nav-toggle" id="nav-toggle-btn" aria-label="Toggle menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
       </nav>
+      <div class="nav-cta">
+        <a href="paper.html" target="_blank" class="btn btn-ghost">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          Paper
+        </a>
+        <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub
+        </a>
+      </div>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </header>
 
-  <!-- 2. Hero Section -->
+  <!-- ═══ Hero ═══ -->
   <section class="hero">
     <div class="container">
-      <div class="badge">
-        <span class="badge-dot"></span>
-        <span>NEURON v0.1.0 Released</span>
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        <span>v0.1 — Now with CUDA GPU Acceleration</span>
       </div>
-      <h1>The language that makes <br><span class="gradient-text-purple">AI think differently.</span></h1>
-      <p class="lead">Every existing ML framework bolts gradients onto general-purpose languages as an afterthought. NEURON integrates automatic differentiation, temporal safety, and causal do-calculus directly into the type system.</p>
-      
+      <h1>The language that makes<br><span class="gradient-text">AI think differently.</span></h1>
+      <p class="hero-lead">NEURON integrates automatic differentiation, temporal safety, causal do-calculus, and uncertainty tracking directly into the type system. No more silent bugs at 3 AM.</p>
       <div class="hero-actions">
-        <a href="#playground" class="hero-btn hero-btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          Interactive Playground
+        <a href="#playground" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Try the Playground
         </a>
-        <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="hero-btn hero-btn-secondary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-          Clone & Build
+        <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="btn btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          Clone &amp; Build
         </a>
       </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value" data-target="66">0</div>
+          <div class="hero-stat-label">Tests Passing</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" data-target="100000">0</div>
+          <div class="hero-stat-label">Endurance Iterations</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" data-target="8">0</div>
+          <div class="hero-stat-label">Stdlib Modules</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" data-target="0">0</div>
+          <div class="hero-stat-label">Compiler Panics</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-code-float">
+      <div class="code-window">
+        <div class="code-window-bar">
+          <span class="code-window-dot" style="background:#ff5f56"></span>
+          <span class="code-window-dot" style="background:#ffbd2e"></span>
+          <span class="code-window-dot" style="background:#27c93f"></span>
+        </div>
+        <div class="code-window-body"><span class="hl-kw">model</span> <span class="hl-type">Transformer</span>:
+  w: <span class="hl-type">Tensor</span>[<span class="hl-num">512</span>, <span class="hl-num">512</span>] = glorot(<span class="hl-num">512</span>, <span class="hl-num">512</span>)
 
-      <div class="hero-paper">
-        <a href="paper.html" target="_blank" class="arxiv-link">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          Read the project research paper draft
-        </a>
+  <span class="hl-kw">fn</span> <span class="hl-fn">forward</span>(self, x):
+    <span class="hl-kw">let</span> q = x @ self.w
+    <span class="hl-kw">let</span> scores = softmax(q)
+    <span class="hl-kw">return</span> scores
+
+  <span class="hl-kw">fn</span> <span class="hl-fn">train</span>(self, data):
+    <span class="hl-kw">let</span> loss = cross_entropy(
+        self.forward(data.x), data.y)
+    <span class="hl-kw">update</span> self <span class="hl-kw">by</span> adam(grad(loss), lr=<span class="hl-num">3e-4</span>)</div>
       </div>
     </div>
   </section>
 
-  <!-- 3. Playground Section -->
+  <!-- ═══ Features ═══ -->
+  <section class="features-section" id="features">
+    <div class="container">
+      <div class="text-center reveal">
+        <span class="section-label">Core Capabilities</span>
+        <h2 class="section-title">Designed for <span class="gradient-text">ML Safety &amp; Correctness</span></h2>
+        <p class="section-subtitle">No more chasing silent numerical bugs, data leakage, or invalid causal claims through thousands of log lines.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <h3>Temporal Types</h3>
+          <p>Prevents lookahead bias at compile time. Variables carry temporal direction properties, and future data access is rejected by the type checker.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"></circle><circle cx="6" cy="6" r="3"></circle><path d="M13 6h3a2 2 0 0 1 2 2v7"></path><path d="M11 18H8a2 2 0 0 1-2-2V9"></path></svg>
+          </div>
+          <h3>Causal Inference</h3>
+          <p>First-class do-calculus. Distinguishes <code>observe()</code> from <code>intervene()</code> to prevent correlation/causation errors at compile time.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          </div>
+          <h3>First-Class Uncertainty</h3>
+          <p><code>Uncertain[Tensor]</code> types propagate confidence bounds through operations. The compiler warns if you forget to check confidence.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+          </div>
+          <h3>Native Autograd</h3>
+          <p>Every function is differentiable. Tape-based reverse-mode AD with backward passes for MatMul, ReLU, Softmax, CrossEntropy, MSE, Sqrt, Sum, Mean.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          </div>
+          <h3>CUDA GPU Acceleration</h3>
+          <p>Fused element-wise CUDA kernels compiled at runtime via NVRTC. Unified memory management for zero-copy host-device transfers.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </div>
+          <h3>Effect System</h3>
+          <p>Side effects must be declared. <code>[Effect[Mut[self], IO]]</code> ensures pure forward passes are separated from training loops.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Playground ═══ -->
   <section class="playground-section" id="playground">
     <div class="container">
-      <h2 class="section-title">Experience <span class="gradient-text-teal">Type Safety</span> In Action</h2>
-      <p class="section-subtitle">Select a tab below to load standard examples in the NEURON compiler, then click <strong>Compile & Run</strong> to simulate compiler execution and runtime verification.</p>
-
-      <div class="playground">
-        <!-- Editor Column -->
-        <div class="editor-card glass-panel">
-          <div class="editor-header">
-            <div class="editor-tabs" id="editor-tabs">
-              <button class="tab-btn active" data-tab="temporal">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Temporal
-              </button>
-              <button class="tab-btn" data-tab="causal">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>
-                Causal
-              </button>
-              <button class="tab-btn" data-tab="uncertainty">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                Uncertainty
-              </button>
-              <button class="tab-btn" data-tab="autograd">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                Autograd
-              </button>
+      <div class="text-center reveal">
+        <span class="section-label">Interactive Demo</span>
+        <h2 class="section-title">Experience <span class="gradient-text">Type Safety</span> in Action</h2>
+        <p class="section-subtitle">Select an example, then click Compile &amp; Run to see NEURON's compiler catch bugs.</p>
+      </div>
+      <div class="playground-card reveal">
+        <div class="editor-side">
+          <div class="panel-header">
+            <div class="tab-group" id="editor-tabs">
+              <button class="tab-btn active" data-tab="temporal">Temporal</button>
+              <button class="tab-btn" data-tab="causal">Causal</button>
+              <button class="tab-btn" data-tab="uncertainty">Uncertainty</button>
+              <button class="tab-btn" data-tab="autograd">Autograd</button>
             </div>
-            <div class="editor-actions">
-              <button class="copy-btn" id="copy-btn" aria-label="Copy code">
+            <div class="panel-actions">
+              <button class="copy-btn" id="copy-btn">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 <span>Copy</span>
               </button>
               <button class="run-btn" id="run-btn">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                Compile & Run
+                Compile &amp; Run
               </button>
             </div>
           </div>
           <div class="editor-body">
-            <div class="line-numbers" id="line-numbers">
-              <!-- JS Populated -->
-            </div>
-            <div class="code-container" id="code-container">
-              <!-- Code block wrappers populated by JS -->
-            </div>
+            <div class="line-numbers" id="line-numbers"></div>
+            <div class="code-content" id="code-container"></div>
           </div>
         </div>
-
-        <!-- Terminal Column -->
-        <div class="terminal-card glass-panel">
-          <div class="terminal-header">
-            <div class="terminal-title">
-              <div class="terminal-dots">
-                <span class="dot-red"></span>
-                <span class="dot-yellow"></span>
-                <span class="dot-green"></span>
-              </div>
-              <span>terminal — neuronc</span>
+        <div class="terminal-side">
+          <div class="panel-header">
+            <div class="terminal-dots">
+              <span class="code-window-dot" style="background:#ff5f56"></span>
+              <span class="code-window-dot" style="background:#ffbd2e"></span>
+              <span class="code-window-dot" style="background:#27c93f"></span>
+              <span style="margin-left:0.5rem;font-size:0.75rem;color:var(--text-muted)">terminal — neuronc</span>
             </div>
           </div>
           <div class="terminal-body" id="terminal-body">
-            <div class="term-line"><span class="term-prompt">visitor@neuron:~$</span> neuronc check examples/demo_million_dollar_bug.nr</div>
-            <div class="term-line">Ready to compile. Click "Compile & Run" above to execute.</div>
+            <div class="term-line"><span class="term-prompt">$ </span>neuronc check examples/demo.nr</div>
+            <div class="term-line" style="color:var(--text-muted)">Ready. Click "Compile &amp; Run" to execute.</div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 4. Features Section -->
-  <section class="features-section" id="features">
+  <!-- ═══ Architecture ═══ -->
+  <section class="arch-section" id="architecture">
     <div class="container">
-      <h2 class="section-title">Designed for <span class="gradient-text-purple">ML Safety & Correctness</span></h2>
-      <p class="section-subtitle">No more chasing silent numerical bugs, data leakage, or invalid causal claims through thousands of log lines.</p>
-      
-      <div class="features-grid">
-        <div class="feature-card glass-panel">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          </div>
-          <h3>Temporal Types</h3>
-          <p>Prevents lookahead bias at compile time. Data variables carry temporal direction properties (e.g., <code>past_to_future</code>), and any index access into future timestamps is rejected by the type checker.</p>
-        </div>
-
-        <div class="feature-card glass-panel">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          </div>
-          <h3>Causal Inference Primitives</h3>
-          <p>Treats do-calculus as a first-class feature. Distinguishes observational conditioning <code>observe()</code> from intervention <code>intervene()</code> to prevent correlation/causation fallacies at compile time.</p>
-        </div>
-
-        <div class="feature-card glass-panel">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          </div>
-          <h3>First-Class Uncertainty</h3>
-          <p>Supports <code>Uncertain[Tensor]</code> types. Uncertainty bounds are propagated through mathematical operations automatically. The compiler issues a warning if confidence parameters are not explicitly checked.</p>
-        </div>
-
-        <div class="feature-card glass-panel">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-          </div>
-          <h3>Natively Differentiable</h3>
-          <p>No libraries required. Functions are automatically differentiable, utilizing a tape-based reverse-mode autograd engine built directly into the compiler AST lowerer and VM backend.</p>
-        </div>
+      <div class="text-center reveal">
+        <span class="section-label">Under the Hood</span>
+        <h2 class="section-title">How <span class="gradient-text">NEURON</span> Works</h2>
+        <p class="section-subtitle">A native compiler pipeline ensuring safety and extreme JIT execution performance.</p>
       </div>
-    </div>
-  </section>
-
-  <!-- NEW 4.5. Compiler Architecture Section -->
-  <section class="architecture-section" id="architecture">
-    <div class="container">
-      <h2 class="section-title">Under the Hood: <span class="gradient-text-teal">How NEURON Works</span></h2>
-      <p class="section-subtitle">A native language compiler workflow, ensuring safety and extreme JIT execution performance.</p>
-      
-      <div class="arch-flow">
-        <div class="arch-node glass-panel">
-          <div class="arch-node-num">01</div>
+      <div class="arch-pipeline reveal">
+        <div class="arch-step">
+          <div class="arch-step-num">01</div>
           <h4>Source Code</h4>
-          <p>User writes <code>.nr</code> files using differentiable models, matrix multiplication, and causal primitives.</p>
+          <p>Write <code>.nr</code> files with models, causal graphs, and tensor math</p>
         </div>
-        
         <div class="arch-arrow">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </div>
-
-        <div class="arch-node glass-panel">
-          <div class="arch-node-num">02</div>
-          <h4>Type Checking</h4>
-          <p>Checks tensor sizes, checks lookahead bounds, validates causal observations, and verifies effect flags.</p>
+        <div class="arch-step">
+          <div class="arch-step-num">02</div>
+          <h4>Lexer &amp; Parser</h4>
+          <p>Indent-aware tokenization, recursive descent parsing</p>
         </div>
-        
         <div class="arch-arrow">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </div>
-
-        <div class="arch-node glass-panel">
-          <div class="arch-node-num">03</div>
-          <h4>AST to IR Lowering</h4>
-          <p>Lowers code into a compiler Control Flow Graph (CFG) with custom basic blocks and tape nodes.</p>
+        <div class="arch-step">
+          <div class="arch-step-num">03</div>
+          <h4>Type Checker</h4>
+          <p>Shapes, temporal, causal, uncertainty, effect verification</p>
         </div>
-        
         <div class="arch-arrow">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
         </div>
-
-        <div class="arch-node glass-panel">
-          <div class="arch-node-num">04</div>
-          <h4>JIT Compiler</h4>
-          <p>Generates host-native C code dynamically compiled into a DLL, linking directly for native-level execution speeds.</p>
+        <div class="arch-step">
+          <div class="arch-step-num">04</div>
+          <h4>IR Lowering</h4>
+          <p>SSA-style CFG with basic blocks and tape nodes</p>
+        </div>
+        <div class="arch-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </div>
+        <div class="arch-step">
+          <div class="arch-step-num">05</div>
+          <h4>Dual Backend</h4>
+          <p>VM interpreter, JIT transpiler, and CUDA GPU kernels</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 5. Framework Comparison Matrix -->
+  <!-- ═══ Comparison ═══ -->
   <section class="comparison-section" id="comparison">
     <div class="container">
-      <h2 class="section-title">NEURON vs. <span class="gradient-text-teal">Traditional Frameworks</span></h2>
-      <p class="section-subtitle">How compile-time guarantees replace tedious debugging loops.</p>
-      
-      <div class="comparison-table-wrapper">
+      <div class="text-center reveal">
+        <span class="section-label">Framework Comparison</span>
+        <h2 class="section-title">NEURON vs. <span class="gradient-text">Traditional Frameworks</span></h2>
+        <p class="section-subtitle">How compile-time guarantees replace tedious debugging loops.</p>
+      </div>
+      <div class="comparison-table-wrap reveal">
         <table class="comparison-table">
           <thead>
             <tr>
-              <th class="feat-column">Safety Check</th>
-              <th class="comp-col-competitor">PyTorch</th>
-              <th class="comp-col-competitor">JAX</th>
-              <th class="comp-col-neuron">NEURON</th>
+              <th>Safety Check</th>
+              <th>PyTorch</th>
+              <th>JAX</th>
+              <th class="neuron-col">NEURON</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="feat-column">Tensor Shape Verification</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> Runtime Crash</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> JIT Compile-time</td>
-              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Compile-time</td>
+              <td>Tensor Shape Verification</td>
+              <td><span class="cross">✗</span> Runtime Crash</td>
+              <td><span class="cross">✗</span> JIT Compile-time</td>
+              <td><span class="check">✓</span> Static Compile-time</td>
             </tr>
             <tr>
-              <td class="feat-column">Temporal Lookahead Prevention</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Silent Bug)</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Silent Bug)</td>
-              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Type-check Error</td>
+              <td>Temporal Leak Prevention</td>
+              <td><span class="cross">✗</span> None (Silent Bug)</td>
+              <td><span class="cross">✗</span> None (Silent Bug)</td>
+              <td><span class="check">✓</span> Static Type Error</td>
             </tr>
             <tr>
-              <td class="feat-column">Causal Intervention Checking</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> Manual tracking</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> Manual tracking</td>
-              <td class="comp-col-neuron"><span class="check-green">✓</span> Static Type-check Error</td>
+              <td>Causal Intervention Checking</td>
+              <td><span class="cross">✗</span> Manual tracking</td>
+              <td><span class="cross">✗</span> Manual tracking</td>
+              <td><span class="check">✓</span> Static Type Error</td>
             </tr>
             <tr>
-              <td class="feat-column">Uncertainty Propagation Warnings</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Library only)</td>
-              <td class="comp-col-competitor"><span class="cross-red">✗</span> None (Library only)</td>
-              <td class="comp-col-neuron"><span class="check-green">✓</span> Compiler Warning</td>
+              <td>Uncertainty Warnings</td>
+              <td><span class="cross">✗</span> None</td>
+              <td><span class="cross">✗</span> None</td>
+              <td><span class="check">✓</span> Compiler Warning</td>
             </tr>
             <tr>
-              <td class="feat-column">Gradient Computations</td>
-              <td class="comp-col-competitor"><span class="check-green">✓</span> Library (Tape-based)</td>
-              <td class="comp-col-competitor"><span class="check-green">✓</span> JIT Transformation</td>
-              <td class="comp-col-neuron"><span class="check-green">✓</span> Native Syntax (grad)</td>
+              <td>Gradient Computation</td>
+              <td><span class="check">✓</span> Library (Tape)</td>
+              <td><span class="check">✓</span> JIT Transform</td>
+              <td><span class="check">✓</span> Native Syntax</td>
+            </tr>
+            <tr>
+              <td>GPU Acceleration</td>
+              <td><span class="check">✓</span> CUDA</td>
+              <td><span class="check">✓</span> XLA</td>
+              <td><span class="check">✓</span> CUDA JIT (NVRTC)</td>
             </tr>
           </tbody>
         </table>
@@ -298,360 +340,301 @@
     </div>
   </section>
 
-  <!-- 6. Performance Benchmarks -->
+  <!-- ═══ Benchmarks ═══ -->
   <section class="benchmarks-section" id="benchmarks">
     <div class="container">
-      <h2 class="section-title">Performance <span class="gradient-text-purple">Benchmarks</span></h2>
-      <p class="section-subtitle">NEURON JIT delivers CPU execution speeds on par with PyTorch, outperforming standard interpreted Python execution.</p>
-      
+      <div class="text-center reveal">
+        <span class="section-label">Performance</span>
+        <h2 class="section-title">Performance <span class="gradient-text">Benchmarks</span></h2>
+        <p class="section-subtitle">NEURON JIT delivers CPU execution speeds competitive with PyTorch, outperforming interpreted Python.</p>
+      </div>
       <div class="benchmarks-grid">
-        <!-- Chart 1: MLP Backpropagation -->
-        <div class="benchmark-chart glass-panel">
+        <div class="benchmark-card reveal">
           <h3>MLP Backpropagation Training</h3>
-          <p class="chart-desc">100 steps, batch size 64, Adam optimizer (lower execution time is better)</p>
-          
-          <div class="bar-container">
-            <div class="bar-label">NEURON VM (Interpreted)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-slow" style="width: 100%">307.5ms</div>
-            </div>
+          <p class="benchmark-desc">100 steps, batch size 64, Adam optimizer (lower is better)</p>
+          <div class="bar-row">
+            <div class="bar-label">NEURON VM (Interpreted) <span>307.5ms</span></div>
+            <div class="bar-track"><div class="bar-fill vm" data-width="100%"></div></div>
           </div>
-          
-          <div class="bar-container">
-            <div class="bar-label">NEURON Native JIT (1 Thread)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-fast" style="width: 74%">228.5ms</div>
-            </div>
+          <div class="bar-row">
+            <div class="bar-label">NEURON Native JIT <span>228.5ms</span></div>
+            <div class="bar-track"><div class="bar-fill jit" data-width="74%"></div></div>
           </div>
-          
-          <div class="bar-container">
-            <div class="bar-label">PyTorch CPU (1 Thread)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-pytorch" style="width: 63%">195.5ms</div>
-            </div>
+          <div class="bar-row">
+            <div class="bar-label">PyTorch CPU (1 Thread) <span>195.5ms</span></div>
+            <div class="bar-track"><div class="bar-fill pytorch" data-width="63%"></div></div>
           </div>
         </div>
-
-        <!-- Chart 2: Matrix Multiplication (MatMul) -->
-        <div class="benchmark-chart glass-panel">
-          <h3>Matrix Multiplication (MatMul) Speedup</h3>
-          <p class="chart-desc">Relative speedup factors compared to the interpreted VM baseline (higher is better)</p>
-          
-          <div class="bar-container">
-            <div class="bar-label">NEURON VM (Interpreted)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-slow" style="width: 5%">1.0x (Baseline)</div>
-            </div>
+        <div class="benchmark-card reveal reveal-delay-1">
+          <h3>Matrix Multiplication Speedup</h3>
+          <p class="benchmark-desc">Relative speedup vs. interpreted baseline (higher is better)</p>
+          <div class="bar-row">
+            <div class="bar-label">NEURON VM (Baseline) <span>1.0×</span></div>
+            <div class="bar-track"><div class="bar-fill vm" data-width="3%"></div></div>
           </div>
-          
-          <div class="bar-container">
-            <div class="bar-label">NEURON Native JIT (1 Thread)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-fast" style="width: 49%">19.8x Speedup</div>
-            </div>
+          <div class="bar-row">
+            <div class="bar-label">NEURON Native JIT <span>19.8×</span></div>
+            <div class="bar-track"><div class="bar-fill jit" data-width="49%"></div></div>
           </div>
-          
-          <div class="bar-container">
-            <div class="bar-label">PyTorch CPU (1 Thread)</div>
-            <div class="bar-wrapper">
-              <div class="bar bar-pytorch" style="width: 100%">40.5x Speedup</div>
-            </div>
+          <div class="bar-row">
+            <div class="bar-label">PyTorch CPU (1 Thread) <span>40.5×</span></div>
+            <div class="bar-track"><div class="bar-fill pytorch" data-width="100%"></div></div>
           </div>
         </div>
       </div>
-      
-      <div class="optimizations-callout glass-panel">
+      <div class="optimizations-card reveal">
         <h3>Key Math Engine Optimizations</h3>
-        <div class="optimizations-grid">
+        <div class="optim-grid">
           <div class="optim-item">
             <strong>IKJ Loop Reordering</strong>
-            <p>Rearranges memory access patterns in matrix multiplication for sequential cache line retrieval, enabling CPU auto-vectorization into AVX2 instructions.</p>
+            <p>Cache-friendly memory access patterns in MatMul enabling CPU auto-vectorization into AVX2 instructions.</p>
           </div>
           <div class="optim-item">
-            <strong>Thread-Local Allocator Pool</strong>
-            <p>Thread-local caching allocator (Buffer) recycles intermediate vectors, completely eliminating dynamic allocation locks during backpropagation.</p>
+            <strong>Thread-Local Allocator</strong>
+            <p>Caching allocator recycles intermediate vectors, eliminating dynamic allocation locks during backpropagation.</p>
           </div>
           <div class="optim-item">
-            <strong>Bounds Check Elimination</strong>
-            <p>Enables LLVM compiler optimization to prove indexing limits, removing runtime safety check overhead in matmul loops.</p>
+            <strong>Bounds Check Elision</strong>
+            <p>LLVM proves indexing limits, removing runtime safety check overhead in hot loops.</p>
           </div>
           <div class="optim-item">
             <strong>Powi Loop LICM</strong>
-            <p>Moves exponentiation calculations outside the element-wise optimization steps, reducing loop evaluation times.</p>
+            <p>Moves exponentiation calculations outside element-wise optimization steps.</p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- NEW 6.5. Interactive FAQ Accordion Section -->
+  <!-- ═══ FAQ ═══ -->
   <section class="faq-section" id="faq">
     <div class="container">
-      <h2 class="section-title">Frequently Asked <span class="gradient-text-purple">Questions</span></h2>
-      <p class="section-subtitle">Find answers to common technical and licensing questions regarding NEURON.</p>
-      
-      <div class="faq-accordion">
-        <div class="faq-item glass-panel">
+      <div class="text-center reveal">
+        <span class="section-label">Questions</span>
+        <h2 class="section-title">Frequently Asked <span class="gradient-text">Questions</span></h2>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item reveal">
           <button class="faq-question">
             <span>Why not just build a PyTorch or JAX library wrapper?</span>
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            <p>A library wrapper cannot verify mathematical properties at the syntax level. In Python, shape errors, temporal lookahead bias, and causal mode confusion only manifest as runtime exceptions or silent numerical calculation discrepancies. By writing a custom compiler in Rust, NEURON validates the structure of your network graph before compiling or executing it.</p>
+            <p>A library wrapper cannot verify mathematical properties at the syntax level. Shape errors, temporal lookahead bias, and causal mode confusion only manifest as runtime exceptions or silent numerical discrepancies in Python. By writing a custom compiler in Rust, NEURON validates the structure of your computation graph before execution.</p>
           </div>
         </div>
-
-        <div class="faq-item glass-panel">
+        <div class="faq-item reveal reveal-delay-1">
           <button class="faq-question">
-            <span>How do temporal types prevent lookahead bias under the hood?</span>
+            <span>How do temporal types prevent lookahead bias?</span>
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            <p>NEURON implements temporal direction analysis during type verification. When you construct a <code>Temporal[T, past_to_future]</code> reference, the compiler tracks historical sequences. Any index offset referencing a timestamp index higher than the current index (e.g. <code>.after(k)</code>) is caught by the compiler type-checker and rejected with a <code>TemporalLeak</code> compilation error.</p>
+            <p>NEURON implements temporal direction analysis during type verification. When you construct a <code>Temporal[T, past_to_future]</code> reference, the compiler tracks data flow direction. Any operation like <code>.after(k)</code> that references future timestamps flips the direction to <code>future_to_past</code>, which is then rejected if passed to a function expecting past-only data.</p>
           </div>
         </div>
-
-        <div class="faq-item glass-panel">
+        <div class="faq-item reveal reveal-delay-2">
           <button class="faq-question">
-            <span>What are the exact hardware and OS requirements?</span>
+            <span>What are the hardware and OS requirements?</span>
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            <p>The compiler (<code>neuronc</code>) is written in Rust and runs on Windows, macOS, and Linux. The JIT compiler requires <code>clang</code> or another host compiler to compile the dynamically linked native modules. Native code generation targets standard x86_64 AVX2 instruction sets. GPU execution is supported on CUDA-capable NVIDIA GPUs, utilising runtime compilation via the NVRTC library.</p>
+            <p>The compiler (<code>neuronc</code>) is written in Rust and runs on Windows, macOS, and Linux. The JIT compiler uses <code>rustc</code> to compile generated Rust code. GPU execution is supported on CUDA-capable NVIDIA GPUs using runtime compilation via the NVRTC library. Native code generation targets standard x86_64 AVX2 instruction sets.</p>
           </div>
         </div>
-
-        <div class="faq-item glass-panel">
+        <div class="faq-item reveal reveal-delay-3">
           <button class="faq-question">
-            <span>Why did you choose the Business Source License (BSL 1.1)?</span>
+            <span>Why the Business Source License (BSL 1.1)?</span>
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            <p>The BSL allows 100% free use of the compiler and runtime for development, testing, research, and non-production deployments. For proprietary commercial workloads (such as algorithmic trading models), it requires a commercial license. This ensures sustainable funding for the development team while guaranteeing that the code becomes completely open-source (Apache 2.0) on January 1, 2030.</p>
+            <p>The BSL allows 100% free use for development, testing, research, and non-production deployments. For proprietary commercial workloads, it requires a commercial license. This ensures sustainable funding while guaranteeing the code becomes fully open-source (Apache 2.0) on January 1, 2030.</p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 6.8. Pricing & SaaS Section -->
+  <!-- ═══ Pricing ═══ -->
   <section class="pricing-section" id="pricing">
     <div class="container">
-      <h2 class="section-title">Simple, Transparent <span class="gradient-text-teal">SaaS Plans</span></h2>
-      <p class="section-subtitle">Choose the pricing model that fits your team's cognitive workloads, from local research to serverless cloud agent hosting.</p>
-      
-      <div class="pricing-toggle-container">
+      <div class="text-center reveal">
+        <span class="section-label">Plans</span>
+        <h2 class="section-title">Simple, Transparent <span class="gradient-text">Pricing</span></h2>
+        <p class="section-subtitle">From local research to serverless cloud agent hosting.</p>
+      </div>
+      <div class="pricing-toggle-wrap">
         <span class="toggle-label active" id="billing-monthly">Monthly</span>
-        <button class="pricing-toggle-btn" id="pricing-toggle" aria-label="Toggle billing cycle">
+        <button class="pricing-toggle" id="pricing-toggle" aria-label="Toggle billing">
           <span class="toggle-circle"></span>
         </button>
         <span class="toggle-label" id="billing-yearly">Yearly (Save 20%)</span>
       </div>
-
       <div class="pricing-grid">
-        <!-- Tier 1: Developer -->
-        <div class="pricing-card glass-panel">
-          <div class="pricing-tier-badge">Open Source</div>
+        <!-- Developer -->
+        <div class="pricing-card reveal">
+          <div class="pricing-tier">Open Source</div>
           <h3>Developer</h3>
           <p class="pricing-desc">For individual developers, academics, and open-source contributors.</p>
-          <div class="price-box">
+          <div class="price-amount">
             <span class="price-currency">$</span>
-            <span class="price-val">0</span>
+            <span class="price-value">0</span>
             <span class="price-period">/ forever</span>
           </div>
-          <ul class="price-features">
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Core CLI & JIT Compiler</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Custom CPU Interpreter</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Core Standard Libraries</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Community-led Support</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>BSL 1.1 Source-Available</span>
-            </li>
+          <ul class="pricing-features">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Core CLI &amp; JIT Compiler</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> CPU Interpreter &amp; CUDA GPU</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Full Standard Libraries</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Community Support</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> BSL 1.1 Source-Available</li>
           </ul>
-          <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="price-btn">Download SDK</a>
+          <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="pricing-btn pricing-btn-outline">Download SDK</a>
         </div>
-
-        <!-- Tier 2: Cloud Pro (Recommended) -->
-        <div class="pricing-card glass-panel recommended">
-          <div class="pricing-tier-badge recommended-badge">Recommended</div>
+        <!-- Cloud Pro -->
+        <div class="pricing-card featured reveal reveal-delay-1">
+          <div class="pricing-tier">Cloud Platform</div>
           <h3>Cloud Pro</h3>
-          <p class="pricing-desc">Serverless hosting and detailed analytics for cognitive AI agents.</p>
-          <div class="price-box">
+          <p class="pricing-desc">Serverless hosting and analytics for cognitive AI agents.</p>
+          <div class="price-amount">
             <span class="price-currency">$</span>
-            <span class="price-val" id="pro-price">49</span>
+            <span class="price-value" id="pro-price">49</span>
             <span class="price-period" id="pro-price-period">/ mo</span>
           </div>
-          <ul class="price-features">
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Serverless deployment (<code>neuronc deploy</code>)</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>100k GPU-ms compute / mo</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>10 GB persistent episodic memory</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Curiosity prediction tracking</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Safety alignment dashboard</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Email & Slack Developer Support</span>
-            </li>
+          <ul class="pricing-features">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Serverless deployment</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 100k GPU-ms compute / mo</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 10 GB episodic memory</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Safety alignment dashboard</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Email &amp; Slack support</li>
           </ul>
-          <button class="price-btn price-btn-primary" id="open-waitlist-btn">Join Waitlist</button>
+          <button class="pricing-btn pricing-btn-solid" id="open-waitlist-btn">Join Waitlist</button>
         </div>
-
-        <!-- Tier 3: Enterprise -->
-        <div class="pricing-card glass-panel">
-          <div class="pricing-tier-badge">B2B Core</div>
+        <!-- Enterprise -->
+        <div class="pricing-card reveal reveal-delay-2">
+          <div class="pricing-tier">B2B Core</div>
           <h3>Enterprise</h3>
-          <p class="pricing-desc">For proprietary trading, high-frequency quant models, and robotics.</p>
-          <div class="price-box">
-            <span class="price-val">Custom</span>
+          <p class="pricing-desc">For proprietary trading, quant models, and robotics.</p>
+          <div class="price-amount">
+            <span class="price-value">Custom</span>
           </div>
-          <ul class="price-features">
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Proprietary NVIDIA CUDA Compiler</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>LLVM machine-code compiler backend</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Site-wide commercial license</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>24/7 Dedicated SLA Support</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Custom math kernel optimizations</span>
-            </li>
-            <li>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-teal)" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>Secure container sandboxing</span>
-            </li>
+          <ul class="pricing-features">
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> LLVM compiler backend</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Site-wide commercial license</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> 24/7 Dedicated SLA</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Custom math kernel optimizations</li>
+            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Container sandboxing</li>
           </ul>
-          <a href="mailto:neuronlabs768@gmail.com?subject=Enterprise%20SaaS%20Inquiry" class="price-btn">Contact Sales</a>
+          <a href="mailto:neuronlabs768@gmail.com?subject=Enterprise%20Inquiry" class="pricing-btn pricing-btn-outline">Contact Sales</a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 7. Licensing & Commercial Section -->
+  <!-- ═══ Licensing ═══ -->
   <section class="licensing-section" id="licensing">
     <div class="container">
-      <div class="licensing-card glass-panel">
-        <div class="licensing-header">
-          <h2>Business Source License <span class="gradient-text-purple">1.1</span></h2>
-          <p>NEURON balances developer freedom with open-source sustainability using the Business Source License 1.1 (BSL 1.1).</p>
-        </div>
-        
+      <div class="text-center reveal">
+        <span class="section-label">License</span>
+        <h2 class="section-title">Business Source License <span class="gradient-text">1.1</span></h2>
+      </div>
+      <div class="licensing-card reveal">
+        <h3>Developer freedom meets open-source sustainability</h3>
+        <p>NEURON balances unrestricted access for developers with sustainable funding for long-term development.</p>
         <div class="licensing-grid">
-          <div class="license-box license-box-free">
-            <h3>Non-Production & Open Source</h3>
+          <div class="license-tier free">
+            <h4>Non-Production &amp; Open Source</h4>
             <ul>
-              <li><strong>100% Free</strong>: Full access to the compiler, JIT, interpreter, and stdlib.</li>
-              <li><strong>Educational & Research Use</strong>: Completely unrestricted for academic papers, prototyping, and personal learning.</li>
-              <li><strong>Eventual Open Source</strong>: On January 1, 2030, this code automatically converts to the permissive <strong>Apache License, Version 2.0</strong>.</li>
+              <li><strong>100% Free:</strong> Full access to the compiler, JIT, interpreter, GPU backend, and stdlib.</li>
+              <li><strong>Educational &amp; Research:</strong> Completely unrestricted for academic papers, prototyping, and learning.</li>
+              <li><strong>Eventual Open Source:</strong> On January 1, 2030, automatically converts to the permissive Apache License 2.0.</li>
             </ul>
           </div>
-
-          <div class="license-box license-box-commercial">
-            <h3>Enterprise Production</h3>
+          <div class="license-tier commercial">
+            <h4>Enterprise Production</h4>
             <ul>
-              <li><strong>Commercial License Required</strong>: If you deploy NEURON inside proprietary trading engines, automated production pipelines, or clinical environments.</li>
-              <li><strong>Protects the Moat</strong>: Prevents larger firms from repackaging the JIT compiler into proprietary wrappers without contributing back.</li>
-              <li><strong>Direct Support Options</strong>: Commercial license agreements include direct developer support and custom GPU backend acceleration.</li>
+              <li><strong>Commercial License Required:</strong> For proprietary trading engines, automated pipelines, or clinical deployments.</li>
+              <li><strong>Protects the Moat:</strong> Prevents repackaging the JIT compiler into proprietary wrappers.</li>
+              <li><strong>Direct Support:</strong> Includes developer support and custom GPU backend acceleration.</li>
             </ul>
           </div>
         </div>
-        
-        <p class="license-footnote">
-          For commercial inquiries, licensing questions, or support requests, contact us at <a href="mailto:neuronlabs768@gmail.com">neuronlabs768@gmail.com</a>.
-        </p>
-        <p class="license-footnote">
-          Read the complete parameters and conditions in the official <a href="LICENSE" target="_blank">LICENSE file</a>.
-        </p>
+        <div class="licensing-footnote">
+          For licensing questions, contact <a href="mailto:neuronlabs768@gmail.com">neuronlabs768@gmail.com</a>.<br>
+          Read the full terms in the <a href="LICENSE" target="_blank">LICENSE file</a>.
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 8. Footer -->
-  <footer class="footer">
+  <!-- ═══ CTA ═══ -->
+  <section class="cta-section">
     <div class="container">
-      <div class="footer-grid">
-        <div class="footer-info">
-          <a href="#" class="logo">
-            <img src="neuron_github_logo.png" alt="Neuron Labs" class="logo-img">
-            <span>NEURON</span>
-          </a>
-          <p>The type-safe programming language for trustworthy AI.</p>
+      <div class="cta-card reveal">
+        <h2>Ready to build <span class="gradient-text">trustworthy AI</span>?</h2>
+        <p>Clone the repo, run your first program, and experience compile-time safety for machine learning.</p>
+        <div class="hero-actions" style="justify-content:center">
+          <a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank" class="btn btn-primary">Get Started on GitHub</a>
+          <a href="paper.html" target="_blank" class="btn btn-ghost">Read the Paper</a>
         </div>
-        <ul class="footer-links">
-          <li><a href="#features">Features</a></li>
-          <li><a href="#playground">Playground</a></li>
-          <li><a href="#comparison">Comparison</a></li>
-          <li><a href="#benchmarks">Benchmarks</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-          <li><a href="#licensing">Licensing</a></li>
-          <li><a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank">GitHub</a></li>
-          <li><a href="paper.html" target="_blank">Paper Draft</a></li>
-        </ul>
       </div>
-      <div class="footer-bottom">
-        <p>&copy; 2026 Neuron Labs & the NEURON Contributors. Licensed under BSL 1.1 (converting to Apache 2.0).</p>
-        <p>Contact: <a href="mailto:neuronlabs768@gmail.com" style="color: var(--text-main); text-decoration: underline;">neuronlabs768@gmail.com</a></p>
-        <p>Built with Vanilla HTML/CSS/JS</p>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a href="#" class="logo">
+        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+          <defs>
+            <linearGradient id="logo-grad-footer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="50%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#22d3ee" />
+            </linearGradient>
+          </defs>
+          <path d="M8 24V8L16 16L24 8V24" stroke="url(#logo-grad-footer)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="8" cy="8" r="2" fill="#8b5cf6" />
+          <circle cx="8" cy="24" r="2" fill="#a78bfa" />
+          <circle cx="16" cy="16" r="2" fill="#3b82f6" />
+          <circle cx="24" cy="8" r="2" fill="#22d3ee" />
+          <circle cx="24" cy="24" r="2" fill="#38bdf8" />
+        </svg>
+        <span>NEURON</span>
+      </a>
+      <ul class="footer-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#playground">Playground</a></li>
+        <li><a href="#benchmarks">Benchmarks</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#licensing">Licensing</a></li>
+        <li><a href="https://github.com/neuronlabs-ai/neuron-lang" target="_blank">GitHub</a></li>
+        <li><a href="paper.html" target="_blank">Paper</a></li>
+      </ul>
+      <div class="footer-copy">
+        &copy; 2026 Neuron Labs. <a href="mailto:neuronlabs768@gmail.com">neuronlabs768@gmail.com</a>
       </div>
     </div>
   </footer>
 
-      <!-- Waitlist Modal Overlay -->
-      <div class="modal-overlay" id="waitlist-modal">
-        <div class="modal-content glass-panel">
-          <button class="modal-close" id="close-waitlist-btn" aria-label="Close modal">&times;</button>
-          <div id="waitlist-form-container">
-            <h3>Join the NEURON Waitlist</h3>
-            <p>Deploy your cognitive agents on our secure, serverless cloud platform. Sign up today to secure your spot and receive <strong>$100 in free compute credits</strong> at launch.</p>
-            <form class="waitlist-form" id="waitlist-form">
-              <input type="email" class="waitlist-input" id="waitlist-email" placeholder="Enter your developer email" required>
-              <button type="submit" class="waitlist-submit-btn" id="waitlist-submit-btn">Join Waitlist</button>
-            </form>
-          </div>
-          <div id="waitlist-success-container" style="display: none;">
-            <div class="success-icon" style="font-size: 3rem; color: var(--accent-success); margin-bottom: 1rem;">✓</div>
-            <h3>You're on the list!</h3>
-            <p>Thank you for signing up. We've reserved your spot and will contact you at <strong id="waitlist-success-email"></strong> as soon as the console opens.</p>
-            <button class="price-btn" id="success-close-btn" style="margin-top: 1.5rem;">Close</button>
-          </div>
-        </div>
+  <!-- ═══ Waitlist Modal ═══ -->
+  <div class="modal-overlay" id="waitlist-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="close-waitlist-btn" aria-label="Close">&times;</button>
+      <div id="waitlist-form-container">
+        <h3>Join the NEURON Waitlist</h3>
+        <p>Deploy cognitive agents on our serverless cloud platform. Sign up for <strong>$100 in free compute credits</strong> at launch.</p>
+        <form class="waitlist-form" id="waitlist-form">
+          <input type="email" class="waitlist-input" id="waitlist-email" placeholder="your@email.com" required>
+          <button type="submit" class="waitlist-submit-btn" id="waitlist-submit-btn">Join</button>
+        </form>
       </div>
+      <div id="waitlist-success-container" style="display:none">
+        <div class="success-icon">✓</div>
+        <h3>You're on the list!</h3>
+        <p>We'll contact you at <strong id="waitlist-success-email"></strong> when the platform opens.</p>
+        <button class="pricing-btn pricing-btn-outline" id="success-close-btn" style="margin-top:1.5rem">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
