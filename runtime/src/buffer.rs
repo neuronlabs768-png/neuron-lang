@@ -103,6 +103,7 @@ impl Buffer {
                 };
             } else {
                 eprintln!("cuMemAllocManaged failed (code {}). Size: {} elems, {} bytes. Falling back to CPU.", res, size, byte_size);
+                crate::device::set_force_cpu(true);
             }
         }
         
