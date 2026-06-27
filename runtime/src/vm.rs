@@ -1767,6 +1767,14 @@ impl VM {
             }
             // Output checking prints disabled for performance
             
+            // If the function is not differentiable, skip the CPU re-execution entirely
+            // to avoid all CPU compute and Host buffer allocation overhead.
+            if !func.is_differentiable {
+                self.call_stack[frame_idx].ssa_values.insert(output_id, Value::Tensor(output_tensor));
+                self.effect_log.push(format!("cuda_exec_{}", g_idx));
+                return Ok(());
+            }
+
             // Execute nodes on CPU to populate tape and intermediate values for autograd
             let old_force = crate::device::is_force_cpu();
             crate::device::set_force_cpu(true);
