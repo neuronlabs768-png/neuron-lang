@@ -1546,10 +1546,7 @@ impl VM {
         
         let all_funcs: Vec<IRFunction> = self.functions.values().cloned().collect();
         let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func, &all_funcs);
-        for kernel in &kernels {
-            println!("[NEURON-DEBUG] generate_cuda_kernels: func={}, name={}, inputs={:?}, input_is_tensor={:?}, code:\n{}",
-                     func.name, kernel.name, kernel.inputs, kernel.input_is_tensor, kernel.code);
-        }
+        // Debug printing disabled for performance
         if let Some(ctx) = crate::device::get_cuda_context() {
             for kernel in kernels {
                 match ctx.compile_to_ptx(&kernel.name, &kernel.code) {
@@ -1720,15 +1717,7 @@ impl VM {
                 kernel_params.push(ptr);
             }
             
-            for (idx, &input_id) in kernel.inputs.iter().enumerate() {
-                if kernel.input_is_tensor[idx] {
-                    let val = get_val(input_id);
-                    if let Value::Tensor(ref tensor) = val {
-                        println!("[NEURON-DEBUG] fused input: id={}, numel={}, first_val={:?}",
-                                 input_id, tensor.numel(), tensor.data.get(0..5));
-                    }
-                }
-            }
+            // Input checking prints disabled for performance
 
             let block_size = 256;
             let grid_size = (numel + block_size - 1) / block_size;
@@ -1757,16 +1746,27 @@ impl VM {
             }
             
             output_tensor.data.prefetch_to_host();
-            println!("[NEURON-DEBUG] execute_fused_group: output_id={}, numel={}, first_val={:?}",
-                     output_id, numel, output_tensor.data.get(0..5));
+            // Output checking prints disabled for performance
             
             // Execute nodes on CPU to populate tape and intermediate values for autograd
+            let old_force = crate::device::is_force_cpu();
+            crate::device::set_force_cpu(true);
             let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
+            let mut cpu_res = Ok(());
             for node in &group.instructions {
-                let res = self.exec_node(node, &local_ssa)?;
-                local_ssa.insert(node.id, res.clone());
-                self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+                match self.exec_node(node, &local_ssa) {
+                    Ok(res) => {
+                        local_ssa.insert(node.id, res.clone());
+                        self.call_stack[frame_idx].ssa_values.insert(node.id, res);
+                    }
+                    Err(e) => {
+                        cpu_res = Err(e);
+                        break;
+                    }
+                }
             }
+            crate::device::set_force_cpu(old_force);
+            cpu_res?;
             
             // Swap the CPU-computed tensor's buffer with the GPU-computed one, preserving the tape ID
             if let Some(Value::Tensor(ref mut cpu_tensor)) = self.call_stack[frame_idx].ssa_values.get_mut(&output_id) {
