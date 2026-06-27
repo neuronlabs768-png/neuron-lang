@@ -19,6 +19,7 @@ pub struct CudaModuleFunction {
 unsafe impl Send for CudaModuleFunction {}
 unsafe impl Sync for CudaModuleFunction {}
 
+static GLOBAL_KERNEL_CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, CudaModuleFunction>>> = std::sync::OnceLock::new();
 
 /// Runtime value — everything the VM can hold.
 #[derive(Clone, Debug)]
@@ -1538,6 +1539,7 @@ impl VM {
 
     // Helper functions for causal native methods
     
+
     fn compile_function_kernels(&mut self, func: &IRFunction) {
         if crate::device::is_simulate_cuda() {
             self.compiled_functions.insert(func.name.clone());
@@ -1546,14 +1548,26 @@ impl VM {
         
         let all_funcs: Vec<IRFunction> = self.functions.values().cloned().collect();
         let kernels = neuron_compiler::cuda_codegen::generate_cuda_kernels(func, &all_funcs);
-        // Debug printing disabled for performance
+        
         if let Some(ctx) = crate::device::get_cuda_context() {
+            let cache_mutex = GLOBAL_KERNEL_CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()));
             for kernel in kernels {
+                let mut cache = cache_mutex.lock().unwrap();
+                if let Some(k_func) = cache.get(&kernel.code) {
+                    self.cuda_kernels.insert(kernel.name.clone(), CudaModuleFunction {
+                        module: k_func.module,
+                        function: k_func.function,
+                    });
+                    continue;
+                }
+                
                 match ctx.compile_to_ptx(&kernel.name, &kernel.code) {
                     Ok(ptx) => {
                         match ctx.load_module_and_get_function(&ptx, &kernel.name) {
                             Ok((module, function)) => {
-                                self.cuda_kernels.insert(kernel.name.clone(), CudaModuleFunction { module, function });
+                                let k_func = CudaModuleFunction { module, function };
+                                cache.insert(kernel.code.clone(), CudaModuleFunction { module, function });
+                                self.cuda_kernels.insert(kernel.name.clone(), k_func);
                             }
                             Err(e) => {
                                 println!("Failed to load CUDA kernel {}: {}", kernel.name, e);
@@ -1784,13 +1798,8 @@ impl VM {
 
 impl Drop for VM {
     fn drop(&mut self) {
-        if let Some(ctx) = crate::device::get_cuda_context() {
-            for (_name, k_func) in self.cuda_kernels.drain() {
-                unsafe {
-                    (ctx.cuda.cuModuleUnload)(k_func.module);
-                }
-            }
-        }
+        // CUDA modules are cached globally in GLOBAL_KERNEL_CACHE and remain loaded
+        // for the process duration to avoid reload/recompilation overhead.
     }
 }
 
