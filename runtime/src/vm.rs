@@ -123,6 +123,8 @@ pub struct VM {
     pub max_depth: usize,
     /// Effect tracker.
     pub effect_log: Vec<String>,
+    /// Captured print output.
+    pub stdout_log: Vec<String>,
     /// Temporal direction violations — causes panic.
     strict_temporal: bool,
     /// Strict causal mode checking.
@@ -157,6 +159,7 @@ impl VM {
             call_stack: Vec::new(),
             max_depth: 256,
             effect_log: Vec::new(),
+            stdout_log: Vec::new(),
             strict_temporal: true,
             strict_causal: true,
             adam_m: HashMap::new(),
@@ -1082,7 +1085,9 @@ impl VM {
 
             IROp::Print => {
                 let val = get(&node.inputs[0]);
-                println!("{}", val.display());
+                let disp = val.display();
+                println!("{}", disp);
+                self.stdout_log.push(disp);
                 self.effect_log.push("io".into());
                 Ok(Value::Void)
             }

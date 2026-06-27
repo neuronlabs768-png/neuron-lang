@@ -3,6 +3,8 @@ members = [
     "compiler",
     "runtime",
     "neuronc",
+    "saas",
+    "gpu_bench",
 ]
 resolver = "2"
 

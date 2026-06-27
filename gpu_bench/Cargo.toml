@@ -1,0 +1,13 @@
+[package]
+name = "neuron-gpu-bench"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "gpu_bench"
+path = "src/main.rs"
+
+[dependencies]
+neuron-compiler = { path = "../compiler" }
+neuron-runtime = { path = "../runtime" }
