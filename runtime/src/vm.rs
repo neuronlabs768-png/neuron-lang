@@ -1760,6 +1760,11 @@ impl VM {
             }
             
             output_tensor.data.prefetch_to_host();
+            let res = unsafe { (ctx.cuda.cuCtxSynchronize)() };
+            if res != 0 {
+                let err_str = cuda_error_string(ctx, res);
+                return Err(format!("cuCtxSynchronize after prefetch failed (code {}): {}", res, err_str));
+            }
             // Output checking prints disabled for performance
             
             // Execute nodes on CPU to populate tape and intermediate values for autograd
