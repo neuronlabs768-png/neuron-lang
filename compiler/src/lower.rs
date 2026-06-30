@@ -307,7 +307,12 @@ impl Lowerer {
 
     fn lower_fn_decl(&mut self, f: &FnDecl) -> IRFunction {
         let mut ir_fn = IRFunction::new(&f.name);
-        self.push_scope();
+
+        // Save the outer scope stack and start fresh for this function.
+        // This prevents the function body from resolving global variable names
+        // to SSA IDs that belong to a different function's IR. Instead,
+        // unresolved names will emit Load nodes resolved at runtime from vm.globals.
+        let saved_env = std::mem::replace(&mut self.env, vec![std::collections::HashMap::new()]);
 
         for p in &f.params {
             let id = self.fresh_id();
@@ -346,7 +351,8 @@ impl Lowerer {
         self.current_blocks = saved_blocks;
         self.current_block_id = saved_block_id;
 
-        self.pop_scope();
+        // Restore the outer scope stack
+        self.env = saved_env;
         ir_fn
     }
 

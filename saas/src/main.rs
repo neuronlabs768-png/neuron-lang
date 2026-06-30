@@ -215,8 +215,17 @@ async fn main() {
                             let mut vm = VM::new();
                             vm.load(&output.ir);
 
-                            if vm.functions.contains_key("__global_init__") {
-                                let _ = vm.execute("__global_init__", vec![]);
+                            // Run global initialization: the compiler names the top-level
+                            // init function "main", not "__global_init__"
+                            let init_fn = if vm.functions.contains_key("__global_init__") {
+                                Some("__global_init__")
+                            } else if vm.functions.contains_key("main") {
+                                Some("main")
+                            } else {
+                                None
+                            };
+                            if let Some(init_name) = init_fn {
+                                let _ = vm.execute(init_name, vec![]);
                             }
 
                             let functions = vm.functions.keys().cloned().collect();
