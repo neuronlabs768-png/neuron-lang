@@ -142,6 +142,7 @@ impl Lowerer {
                 
                 let saved_blocks = std::mem::take(&mut self.current_blocks);
                 let saved_block_id = self.current_block_id;
+                let saved_env = std::mem::replace(&mut self.env, vec![std::collections::HashMap::new()]);
 
                 self.current_blocks = Vec::new();
                 let entry = self.new_block();
@@ -180,6 +181,7 @@ impl Lowerer {
 
                 self.current_blocks = saved_blocks;
                 self.current_block_id = saved_block_id;
+                self.env = saved_env;
             }
             TopLevel::Layer(l) => {
                 for method in &l.methods {
@@ -190,6 +192,7 @@ impl Lowerer {
                 
                 let saved_blocks = std::mem::take(&mut self.current_blocks);
                 let saved_block_id = self.current_block_id;
+                let saved_env = std::mem::replace(&mut self.env, vec![std::collections::HashMap::new()]);
 
                 self.current_blocks = Vec::new();
                 let entry = self.new_block();
@@ -228,6 +231,7 @@ impl Lowerer {
 
                 self.current_blocks = saved_blocks;
                 self.current_block_id = saved_block_id;
+                self.env = saved_env;
             }
             TopLevel::Agent(a) => {
                 for method in &a.methods {
@@ -238,6 +242,7 @@ impl Lowerer {
                 
                 let saved_blocks = std::mem::take(&mut self.current_blocks);
                 let saved_block_id = self.current_block_id;
+                let saved_env = std::mem::replace(&mut self.env, vec![std::collections::HashMap::new()]);
 
                 self.current_blocks = Vec::new();
                 let entry = self.new_block();
@@ -276,6 +281,7 @@ impl Lowerer {
 
                 self.current_blocks = saved_blocks;
                 self.current_block_id = saved_block_id;
+                self.env = saved_env;
             }
             TopLevel::Let(l) => {
                 // Lower into main function

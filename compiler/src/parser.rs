@@ -10,7 +10,6 @@ use crate::errors::{ErrorCode, NeuronError};
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
-    #[allow(dead_code)]
     filename: String,
 }
 
@@ -93,7 +92,9 @@ impl Parser {
     fn span(&self) -> Span { self.peek().span.clone() }
 
     fn error(&self, msg: impl Into<String>) -> NeuronError {
-        NeuronError::new(ErrorCode::ParseError, msg, self.span())
+        let mut err = NeuronError::new(ErrorCode::ParseError, msg, self.span());
+        err.filename = Some(self.filename.clone());
+        err
     }
 
     fn ident_str(tok: &Token) -> Result<String, NeuronError> {

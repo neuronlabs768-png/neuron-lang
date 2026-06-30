@@ -947,10 +947,10 @@ impl VM {
                                 "value" => Ok(Value::Float(value)),
                                 "std" => Ok(Value::Float(std)),
                                 "confidence" => Ok(Value::Float(confidence)),
-                                _ => Ok(Value::None),
+                                _ => Err(format!("Uncertain value has no field '{}'", name)),
                             }
                         }
-                        _ => Ok(Value::None),
+                        _ => Err(format!("Cannot access field '{}' on {:?}", name, obj)),
                     }
                 } else {
                     if let Some(frame) = self.call_stack.last() {
@@ -1191,7 +1191,13 @@ impl VM {
                 match &node.output_type {
                     IRType::List(_) => Ok(Value::List(items)),
                     IRType::Tuple(_) => Ok(Value::Tuple(items)),
-                    _ => Ok(Value::Void),
+                    _ => {
+                        if items.len() == 1 {
+                            Ok(items.into_iter().next().unwrap())
+                        } else {
+                            Ok(Value::List(items))
+                        }
+                    }
                 }
             }
 
@@ -1261,19 +1267,19 @@ impl VM {
                                 let row_data = t.data[start..end].to_vec();
                                 Ok(Value::Tensor(Tensor::new(row_data, vec![1, cols])))
                             } else {
-                                Ok(Value::Void)
+                                Err(format!("Index {} out of bounds for tensor with {} rows", i, t.shape[0]))
                             }
                         } else if t.ndim() == 1 {
                             if i < t.data.len() {
                                 Ok(Value::Float(t.data[i]))
                             } else {
-                                Ok(Value::Void)
+                                Err(format!("Index {} out of bounds for tensor of length {}", i, t.data.len()))
                             }
                         } else {
-                            Ok(Value::Void)
+                            Err(format!("Indexing not supported for {}-dimensional tensors", t.ndim()))
                         }
                     }
-                    _ => Ok(Value::Void),
+                    other => Err(format!("Cannot index into {:?}", other)),
                 }
             }
             IROp::StopGrad => {
@@ -1343,7 +1349,7 @@ impl VM {
                     Ok(a)
                 }
             }
-            _ => Ok(Value::Void),
+            other => Err(format!("Unhandled IR operation: {:?}", other)),
         }
     }
 

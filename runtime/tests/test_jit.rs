@@ -113,7 +113,6 @@ fn test_jit_shapes_parity() {
 }
 
 #[test]
-#[ignore = "Pre-existing: model constructor does not initialize weights as tensors for MatMul"]
 fn test_jit_cognitive_operators() {
     let src = r#"
 model Net:
