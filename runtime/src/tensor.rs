@@ -167,10 +167,17 @@ impl Tensor {
         self
     }
 
-    /// Retrieve raw Unified Memory pointer address.
+    /// Retrieve the GPU device pointer (works for both VRAM and UVM storage).
+    /// Returns 0 for Host-only buffers.
+    pub fn device_ptr(&self) -> u64 {
+        self.data.device_ptr()
+    }
+
+    /// Retrieve raw Unified Memory pointer address (legacy, use device_ptr() instead).
     pub fn uvm_device_ptr(&self) -> u64 {
         match &self.data.storage {
             crate::buffer::BufferStorage::Uvm { device_ptr, .. } => *device_ptr,
+            crate::buffer::BufferStorage::Vram { device_ptr, .. } => *device_ptr,
             _ => 0,
         }
     }

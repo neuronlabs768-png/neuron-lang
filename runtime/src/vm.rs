@@ -1667,10 +1667,11 @@ impl VM {
                 return Ok(());
             }
             
-            let output_tensor = Tensor::new(Buffer::new_uvm(numel), output_shape);
-            let out_ptr = output_tensor.uvm_device_ptr();
+            // Allocate output in dedicated VRAM (persistent — stays on GPU)
+            let output_tensor = Tensor::new(Buffer::new_vram(numel), output_shape);
+            let out_ptr = output_tensor.device_ptr();
             
-            // If output UVM allocation failed (ptr=0), fall back to CPU
+            // If VRAM allocation failed (ptr=0), fall back to CPU
             if out_ptr == 0 {
                 let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
                 for node in &group.instructions {
@@ -1691,15 +1692,16 @@ impl VM {
             let mut arg_values = Vec::new();
             arg_values.push(CudaArg::Ptr(out_ptr));
             
-            let mut any_input_missing_uvm = false;
+            let mut any_input_missing = false;
             for (idx, &input_id) in kernel.inputs.iter().enumerate() {
                 let val = get_val(input_id);
                 if kernel.input_is_tensor[idx] {
                     let tensor = val.as_tensor().ok_or_else(|| format!("Expected tensor input for value {}", input_id))?;
-                    tensor.data.prefetch_to_device();
-                    let ptr = tensor.uvm_device_ptr();
+                    // ensure_device() handles both VRAM (no-op if already there) and UVM (prefetch)
+                    tensor.data.ensure_device();
+                    let ptr = tensor.device_ptr();
                     if ptr == 0 {
-                        any_input_missing_uvm = true;
+                        any_input_missing = true;
                         break;
                     }
                     arg_values.push(CudaArg::Ptr(ptr));
@@ -1708,7 +1710,7 @@ impl VM {
                 }
             }
             
-            if any_input_missing_uvm {
+            if any_input_missing {
                 let mut local_ssa = self.call_stack[frame_idx].ssa_values.clone();
                 for node in &group.instructions {
                     let res = self.exec_node(node, &local_ssa)?;
@@ -1730,8 +1732,6 @@ impl VM {
                 };
                 kernel_params.push(ptr);
             }
-            
-            // Input checking prints disabled for performance
 
             let block_size = 256;
             let grid_size = (numel + block_size - 1) / block_size;
@@ -1753,19 +1753,17 @@ impl VM {
                     res, err_str, grid_size, block_size, kernel_params.len(), numel));
             }
             
+            // Synchronize to ensure kernel completion
             let res = unsafe { (ctx.cuda.cuCtxSynchronize)() };
             if res != 0 {
                 let err_str = cuda_error_string(ctx, res);
                 return Err(format!("cuCtxSynchronize failed (code {}): {}", res, err_str));
             }
             
-            output_tensor.data.prefetch_to_host();
-            let res = unsafe { (ctx.cuda.cuCtxSynchronize)() };
-            if res != 0 {
-                let err_str = cuda_error_string(ctx, res);
-                return Err(format!("cuCtxSynchronize after prefetch failed (code {}): {}", res, err_str));
-            }
-            // Output checking prints disabled for performance
+            // Mark the output tensor's VRAM as current — NO download to host!
+            // The data stays in VRAM until the CPU actually needs to read it
+            // (via Deref, which transparently calls ensure_host()).
+            output_tensor.data.mark_device_dirty();
             
             // If the function is not differentiable, skip the CPU re-execution entirely
             // to avoid all CPU compute and Host buffer allocation overhead.

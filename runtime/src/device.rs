@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 /// NEURON Device abstraction — CPU and GPU device management.
 ///
 /// Dynamically loads the CUDA driver and NVRTC compiler libraries using libloading.
@@ -92,7 +94,11 @@ pub struct CudaApi {
     pub cuModuleUnload: unsafe extern "C" fn(module: *mut std::ffi::c_void) -> u32,
     pub cuModuleGetFunction: unsafe extern "C" fn(hfunc: *mut *mut std::ffi::c_void, hmod: *mut std::ffi::c_void, name: *const std::os::raw::c_char) -> u32,
     pub cuMemAllocManaged: unsafe extern "C" fn(dptr: *mut u64, bytesize: usize, flags: u32) -> u32,
+    pub cuMemAlloc_v2: unsafe extern "C" fn(dptr: *mut u64, bytesize: usize) -> u32,
     pub cuMemFree_v2: unsafe extern "C" fn(dptr: u64) -> u32,
+    pub cuMemcpyHtoD_v2: unsafe extern "C" fn(dstDevice: u64, srcHost: *const std::ffi::c_void, byteCount: usize) -> u32,
+    pub cuMemcpyDtoH_v2: unsafe extern "C" fn(dstHost: *mut std::ffi::c_void, srcDevice: u64, byteCount: usize) -> u32,
+    pub cuMemsetD8: unsafe extern "C" fn(dstDevice: u64, uc: u8, n: usize) -> u32,
     pub cuMemPrefetchAsync: unsafe extern "C" fn(dev_ptr: u64, count: usize, dstDevice: i32, hStream: *mut std::ffi::c_void) -> u32,
     pub cuLaunchKernel: unsafe extern "C" fn(
         f: *mut std::ffi::c_void,
@@ -173,7 +179,11 @@ impl CudaApi {
             let cuModuleUnload = *lib.get(b"cuModuleUnload").map_err(|e| e.to_string())?;
             let cuModuleGetFunction = *lib.get(b"cuModuleGetFunction").map_err(|e| e.to_string())?;
             let cuMemAllocManaged = *lib.get(b"cuMemAllocManaged").map_err(|e| e.to_string())?;
+            let cuMemAlloc_v2 = *lib.get(b"cuMemAlloc_v2").map_err(|e| e.to_string())?;
             let cuMemFree_v2 = *lib.get(b"cuMemFree_v2").map_err(|e| e.to_string())?;
+            let cuMemcpyHtoD_v2 = *lib.get(b"cuMemcpyHtoD_v2").map_err(|e| e.to_string())?;
+            let cuMemcpyDtoH_v2 = *lib.get(b"cuMemcpyDtoH_v2").map_err(|e| e.to_string())?;
+            let cuMemsetD8 = *lib.get(b"cuMemsetD8").map_err(|e| e.to_string())?;
             let cuMemPrefetchAsync = *lib.get(b"cuMemPrefetchAsync").map_err(|e| e.to_string())?;
             let cuLaunchKernel = *lib.get(b"cuLaunchKernel").map_err(|e| e.to_string())?;
             let cuStreamCreate = *lib.get(b"cuStreamCreate").map_err(|e| e.to_string())?;
@@ -193,7 +203,11 @@ impl CudaApi {
                 cuModuleUnload,
                 cuModuleGetFunction,
                 cuMemAllocManaged,
+                cuMemAlloc_v2,
                 cuMemFree_v2,
+                cuMemcpyHtoD_v2,
+                cuMemcpyDtoH_v2,
+                cuMemsetD8,
                 cuMemPrefetchAsync,
                 cuLaunchKernel,
                 cuStreamCreate,
@@ -480,6 +494,37 @@ impl Drop for CudaContext {
 
 
 static CUDA_CONTEXT: OnceLock<Option<CudaContext>> = OnceLock::new();
+
+// ── VRAM Usage Tracking ──
+static VRAM_USED: AtomicUsize = AtomicUsize::new(0);
+static VRAM_LIMIT: AtomicUsize = AtomicUsize::new(512 * 1024 * 1024); // 512 MB default
+
+/// Record a VRAM allocation.
+pub fn vram_alloc_track(bytes: usize) {
+    VRAM_USED.fetch_add(bytes, Ordering::Relaxed);
+}
+
+/// Record a VRAM deallocation.
+pub fn vram_free_track(bytes: usize) {
+    VRAM_USED.fetch_sub(bytes, Ordering::Relaxed);
+}
+
+/// Get current VRAM usage in bytes.
+pub fn vram_used() -> usize {
+    VRAM_USED.load(Ordering::Relaxed)
+}
+
+/// Get available VRAM budget in bytes.
+pub fn vram_available() -> usize {
+    let used = VRAM_USED.load(Ordering::Relaxed);
+    let limit = VRAM_LIMIT.load(Ordering::Relaxed);
+    limit.saturating_sub(used)
+}
+
+/// Set the VRAM budget limit in bytes.
+pub fn set_vram_limit(bytes: usize) {
+    VRAM_LIMIT.store(bytes, Ordering::Relaxed);
+}
 
 /// Retrieve reference to initialized dynamic CUDA context.
 pub fn get_cuda_context() -> Option<&'static CudaContext> {
