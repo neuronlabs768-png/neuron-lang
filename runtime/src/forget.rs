@@ -48,6 +48,15 @@ pub fn forget_task(
     let norms_before = collect_param_norms(model);
     let total_norm_before: f64 = norms_before.iter().map(|n| n * n).sum::<f64>().sqrt();
 
+    // Automatically trigger backward pass if tape is populated but no gradients exist yet
+    if vm.tape.tape_len() > 0 {
+        if let Some(loss_id) = vm.tape.last_output_id() {
+            let parameter_ids = vm.collect_parameter_ids();
+            vm.tape.parameter_ids = parameter_ids;
+            vm.tape.backward(loss_id);
+        }
+    }
+
     // 2. Apply unlearning: traverse and update all tensors in-place
     let mut rng = SimpleRng::new(1337);
     let params_modified = update_tensors_in_model(vm, model, method, strength, &mut rng);

@@ -588,6 +588,11 @@ impl GradTape {
         self.entries.len()
     }
 
+    /// Return the ID of the last output tensor registered on the tape.
+    pub fn last_output_id(&self) -> Option<usize> {
+        self.entries.last().map(|e| e.output)
+    }
+
     /// Zero all gradients without clearing the tape.
     pub fn zero_grad(&mut self) {
         for g in self.grads.iter_mut() { *g = None; }
