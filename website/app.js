@@ -27,7 +27,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   <span class="hl-keyword">fn</span> train(self, x: <span class="hl-type">Tensor</span>[B, 4], y: <span class="hl-type">Tensor</span>[B, 1]) [<span class="hl-type">Effect</span>[Mut[self]]]:
     <span class="hl-keyword">let</span> loss = mse(x @ self.w, y)
-    <span class="hl-keyword">update</span> self.w <span class="hl-keyword">by</span> sgd(grad(loss), lr=<span class="hl-number">0.1</span>)`
+    <span class="hl-keyword">update</span> self.w <span class="hl-keyword">by</span> sgd(grad(loss), lr=<span class="hl-number">0.1</span>)`,
+
+    forgetting: `<span class="hl-keyword">fn</span> patient_right_to_be_forgotten(net: <span class="hl-type">DiagnosisModel</span>, data: <span class="hl-type">Tensor</span>) [<span class="hl-type">Effect</span>[Mut[net]]]:
+    <span class="hl-comment"># Selective unlearning using Fisher Information Noise Scrubbing</span>
+    <span class="hl-keyword">let</span> cert = forget(net, data, method=<span class="hl-string">"FisherScrubbing"</span>, strength=<span class="hl-number">0.1</span>)
+    <span class="hl-keyword">return</span> cert`
   };
 
   // 1b. Raw Code Snippets for Copy-to-Clipboard
@@ -56,7 +61,12 @@ model LinearNet:
 
   fn train(self, x: Tensor[B, 4], y: Tensor[B, 1]) [Effect[Mut[self]]]:
     let loss = mse(x @ self.w, y)
-    update self.w by sgd(grad(loss), lr=0.1)`
+    update self.w by sgd(grad(loss), lr=0.1)`,
+
+    forgetting: `fn patient_right_to_be_forgotten(net: DiagnosisModel, data: Tensor) [Effect[Mut[net]]]:
+    # Selective unlearning using Fisher Information Noise Scrubbing
+    let cert = forget(net, data, method="FisherScrubbing", strength=0.1)
+    return cert`
   };
 
   // 2. Line counts for each snippet
@@ -64,7 +74,8 @@ model LinearNet:
     temporal: 4,
     causal: 6,
     uncertainty: 5,
-    autograd: 8
+    autograd: 8,
+    forgetting: 4
   };
 
   // 3. Simulated Compiler Outputs
@@ -113,6 +124,30 @@ model LinearNet:
       { text: "Iter 080/100: Loss = 0.2687", type: "info" },
       { text: "Iter 100/100: Loss = 0.0001 (weight converged to 3.0)", type: "success" },
       { text: "Execution complete. Tape reset, 0 memory leaks.", type: "success" }
+    ],
+    forgetting: [
+      { text: "visitor@neuron:~$ neuronc run examples/unlearning_demo.nr", type: "prompt" },
+      { text: "Resolving model dependency tree for DiagnosisModel...", type: "info" },
+      { text: "Measuring baseline model parameter norms before modification...", type: "info" },
+      { text: "  -> baseline total norm: 1.316576", type: "info" },
+      { text: "Computing Fisher Information diagonal expectation on target dataset...", type: "info" },
+      { text: "Executing tape-based backward pass for targeted noise injection...", type: "info" },
+      { text: "Applying Fisher Information Noise Scrubbing (strength = 0.10)...", type: "success" },
+      { text: "✓ Modifying 4 parameter tensors in-place. Rescrambled norms: 1.330634", type: "success" },
+      { text: "Evaluating residual capabilities & safety bounds: bounds satisfied.", type: "success" },
+      { text: "<ForgetCertificate>", type: "info" },
+      { text: "  certificate_id: CERT-3F7B6F01C84D6605", type: "info" },
+      { text: "  forgotten_loss_before: 0.739954", type: "info" },
+      { text: "  forgotten_loss_after: 0.741022", type: "info" },
+      { text: "  method: FisherScrubbing", type: "info" },
+      { text: "  param_norm_before: 1.316576", type: "info" },
+      { text: "  param_norm_after: 1.330634", type: "info" },
+      { text: "  params_modified: 4", type: "info" },
+      { text: "  residual_loss_retained: 0.010677", type: "info" },
+      { text: "  bounds_satisfied: true", type: "info" },
+      { text: "  strength: 0.100000", type: "info" },
+      { text: "</ForgetCertificate>", type: "info" },
+      { text: "Execution complete. Certificate generated.", type: "success" }
     ]
   };
 
@@ -163,8 +198,14 @@ model LinearNet:
     updateEditor();
     
     // Reset terminal
+    let cmd = `check examples/${currentTab}_leak.nr`;
+    if (currentTab === 'causal') cmd = "check examples/causal_engine.nr";
+    else if (currentTab === 'uncertainty') cmd = "check examples/lidar_test.nr";
+    else if (currentTab === 'autograd') cmd = "run examples/linear_regression.nr";
+    else if (currentTab === 'forgetting') cmd = "run examples/unlearning_demo.nr";
+
     terminalBody.innerHTML = `
-      <div class="term-line"><span class="term-prompt">visitor@neuron:~$</span> neuronc check examples/${currentTab === 'autograd' ? 'linear_regression' : currentTab + '_leak'}.nr</div>
+      <div class="term-line"><span class="term-prompt">visitor@neuron:~$</span> neuronc ${cmd}</div>
       <div class="term-line">Ready to compile. Click "Compile & Run" above to execute.</div>
     `;
   });
