@@ -644,8 +644,22 @@ impl TypeChecker {
             }
             Expr::Index(idx) => {
                 let obj_ty = self.infer_expr(&idx.obj);
-                // Indexing a tensor returns a tensor (with reduced dims)
-                if matches!(obj_ty, NType::Tensor(_)) { obj_ty.clone() } else { NType::Any }
+                match obj_ty {
+                    NType::Tensor(_) => obj_ty.clone(),
+                    NType::List(inner) => *inner.clone(),
+                    NType::Tuple(ref types) => {
+                        if idx.indices.len() == 1 {
+                            if let IndexItem::Expr(Expr::IntLit(val, _)) = &idx.indices[0] {
+                                let i = *val as usize;
+                                if i < types.len() {
+                                    return types[i].clone();
+                                }
+                            }
+                        }
+                        NType::Any
+                    }
+                    _ => NType::Any,
+                }
             }
             Expr::Grad(g) => {
                 let inner = self.infer_expr(&g.expr);
