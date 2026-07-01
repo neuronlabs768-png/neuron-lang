@@ -285,7 +285,7 @@ NEURON is in **technical preview**. The core language is complete and tested:
 - Full compiler pipeline (lex, parse, typecheck, lower, JIT)
 - Working interpreter and JIT compiler with verified parity
 - Automatic differentiation with tape-based autograd (supporting Div, CrossEntropy, MSE, Sqrt, Sum, Mean, and more)
-- GPU acceleration (natively compiled CUDA JIT kernels via NVRTC with element-wise operator fusion and unified memory)
+- GPU acceleration (natively compiled CUDA JIT kernels via NVRTC with element-wise operator fusion and a high-performance persistent VRAM architecture featuring dedicated memory allocation, caching pool, and zero-copy host-device tracking)
 - Type-safe tensor shapes, temporal types, causal types, uncertainty types
 - Effect system for mutation tracking
 - Multi-file module imports with `import` and `from ... import` syntax

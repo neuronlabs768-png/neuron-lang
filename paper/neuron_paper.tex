@@ -94,7 +94,7 @@ We make the following claims and note their boundaries:
   
   \item \textbf{Claim 3}: In our testing, the autograd engine produces gradients consistent with the formulas listed in \S4.2, with no discrepancies found in convergence tests or interpreter/JIT parity checks. \emph{Boundary}: This is empirical evidence, not a formal proof of correctness. We have not compared against reference implementations.
 
-  \item \textbf{Claim 4}: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with unified memory. \emph{Boundary}: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
+  \item \textbf{Claim 4}: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with a persistent VRAM architecture. \emph{Boundary}: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
   
   \item \textbf{Not yet implemented}: Formal soundness proof.
 \end{itemize}
@@ -261,7 +261,7 @@ NEURON is implemented as a prototype compiler in Rust, comprising approximately 
 
 \subsection{Compiler Pipeline}
 
-The compiler follows a standard multi-pass architecture: source is tokenized by a lexer with INDENT/DEDENT support, parsed by a recursive-descent parser with Pratt precedence for expressions, type-checked in two phases (registration then body checking), lowered to SSA-style IR with basic blocks and terminators, and executed by either an interpreter (VM) or a JIT compiler that transpiles IR to Rust source and invokes \texttt{rustc}. A dedicated GPU backend pass groups contiguous element-wise operations into fused CUDA kernels compiled dynamically via the NVIDIA Runtime Compilation (NVRTC) library, executing with unified memory on physical GPUs.
+The compiler follows a standard multi-pass architecture: source is tokenized by a lexer with INDENT/DEDENT support, parsed by a recursive-descent parser with Pratt precedence for expressions, type-checked in two phases (registration then body checking), lowered to SSA-style IR with basic blocks and terminators, and executed by either an interpreter (VM) or a JIT compiler that transpiles IR to Rust source and invokes \texttt{rustc}. A dedicated GPU backend pass groups contiguous element-wise operations into fused CUDA kernels compiled dynamically via the NVIDIA Runtime Compilation (NVRTC) library, executing on physical GPUs via a persistent VRAM architecture with dedicated allocation, caching pool, and zero-copy host-device tracking.
 
 \subsection{Autograd Engine}
 

@@ -61,4 +61,4 @@ Run the cargo tests using the real GPU back-end:
 2. The compiler's `cuda_codegen.rs` module automatically groups and fuses contiguous element-wise math nodes into a custom CUDA C++ kernel string.
 3. The VM runtime dynamically loads `/usr/lib64-nvidia/libnvrtc.so.12` and compiles the fused kernel string into Parallel Thread Execution (PTX) assembly in real-time.
 4. The VM launches the compiled PTX directly on the GPU using the CUDA driver API (`cuLaunchKernel`).
-5. Output values are written back to Unified Memory (UVM) and verified against expected values on the host.
+5. Outputs reside directly in VRAM for zero-copy chaining, synchronized back to host memory on CPU read, and verified against expected values.

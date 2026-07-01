@@ -35,7 +35,7 @@ We make the following claims and note their boundaries:
 
 - **Claim 3**: In our testing, the autograd engine produces gradients consistent with the formulas listed in §4.2, with no discrepancies found in convergence tests or interpreter/JIT parity checks. *Boundary*: This is empirical evidence, not a formal proof of correctness. We have not compared against reference implementations.
 
-- **Claim 4**: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with unified memory. *Boundary*: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
+- **Claim 4**: NEURON features a GPU backend that dynamically compiles fused element-wise operator groups using NVRTC (CUDA Runtime Compilation) and executes them on CUDA-capable GPUs with a persistent VRAM architecture. *Boundary*: The GPU backend supports element-wise and simple reduction operations and is validated for correctness, but does not support multi-GPU clustering or arbitrary library kernel injection.
 
 - **Not yet implemented**: Formal soundness proof.
 
@@ -231,7 +231,7 @@ The compiler consists of the following components:
 - **IR**: SSA-style intermediate representation with basic blocks and terminators (`Jump`, `Branch`, `Return`).
 - **IR Lowering**: Translates the typed AST into IR with scoped variable resolution and control flow lowering.
 - **Dual backends**: An interpreter (VM) and a JIT compiler (IR → Rust source → `rustc`). Both backends are tested for semantic parity on randomly generated programs (§5.4).
-- **GPU / CUDA Backend**: An optimization pass fuses contiguous element-wise IR operations (such as Add, Sub, Mul, Div, ReLU, GeLU, Sigmoid, and Tanh) into a single `CudaKernel`. The runtime dynamically compiles these kernels at runtime using the NVIDIA Runtime Compilation (NVRTC) library and executes them on CUDA hardware with unified memory buffers (`cuMemAllocManaged`), eliminating redundant host-device memory transfers.
+- **GPU / CUDA Backend**: An optimization pass fuses contiguous element-wise IR operations (such as Add, Sub, Mul, Div, ReLU, GeLU, Sigmoid, and Tanh) into a single `CudaKernel`. The runtime dynamically compiles these kernels at runtime using the NVIDIA Runtime Compilation (NVRTC) library and executes them on CUDA hardware using a persistent VRAM allocation scheme (`cuMemAlloc_v2`) combined with a caching pool and host-device dirty state tracking, enabling zero-copy kernel chaining and eliminating redundant PCIe memory transfers.
 
 ### 4.2 Autograd Engine
 
