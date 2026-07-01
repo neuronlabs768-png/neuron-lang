@@ -19,17 +19,28 @@ model DiagnosisModel:
   fn predict(self, symptoms: Tensor[B, 4]) -> Tensor[B, 1]:
     return sigmoid(symptoms @ self.w)
 
-fn main():
+fn main() [Effect[Mut[net]]]:
   let net = DiagnosisModel()
   let patient_data = zeros(10, 4) + 1.0
-
   // Train the model (it learns from patient data)
-  let pred = net.predict(patient_data)
-  let loss = mse(pred, zeros(10, 1) + 1.0)
+  let pred1 = net.predict(patient_data)
+  let loss1 = mse(pred1, zeros(10, 1) + 1.0)
+  print(loss1)
+  update net.w by sgd(grad(loss1), lr=0.5)
+
+  let pred2 = net.predict(patient_data)
+  let loss2 = mse(pred2, zeros(10, 1) + 1.0)
+  print(loss2)
+  update net.w by sgd(grad(loss2), lr=0.5)
+
+  let pred3 = net.predict(patient_data)
+  let loss3 = mse(pred3, zeros(10, 1) + 1.0)
+  print(loss3)
+  update net.w by sgd(grad(loss3), lr=0.5)
 
   // Patient requests data deletion under GDPR.
   // forget() removes the learned information and issues a certificate.
-  let certificate = forget(net, patient_data, "GradientAscent", 0.1)
+  let certificate = forget(net, patient_data, "FisherScrubbing", 0.5)
 
   // The certificate proves:
   //   - What method was used (GradientAscent / TaskNegation)
