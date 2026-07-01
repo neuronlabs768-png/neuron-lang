@@ -49,7 +49,8 @@ pub fn forget_task(
     let total_norm_before: f64 = norms_before.iter().map(|n| n * n).sum::<f64>().sqrt();
 
     // 2. Apply unlearning: traverse and update all tensors in-place
-    let params_modified = update_tensors_in_model(vm, model, method, strength);
+    let mut rng = SimpleRng::new(1337);
+    let params_modified = update_tensors_in_model(vm, model, method, strength, &mut rng);
 
     // 3. Measure parameter norms AFTER modification
     let norms_after = collect_param_norms(model);
@@ -120,7 +121,13 @@ pub fn forget_task(
 
 /// Updates tensors in a model using the specified unlearning method.
 /// Returns the count of parameters that were actually modified.
-fn update_tensors_in_model(vm: &mut VM, val: &mut Value, method: &str, strength: f64) -> usize {
+fn update_tensors_in_model(
+    vm: &mut VM,
+    val: &mut Value,
+    method: &str,
+    strength: f64,
+    rng: &mut SimpleRng,
+) -> usize {
     let mut count = 0;
     match val {
         Value::Tensor(ref mut t) => {
@@ -131,6 +138,11 @@ fn update_tensors_in_model(vm: &mut VM, val: &mut Value, method: &str, strength:
                     if method.eq_ignore_ascii_case("GradientAscent") {
                         // Ascent: add gradient to parameters to maximize loss
                         t.data[j] += strength * g;
+                    } else if method.eq_ignore_ascii_case("FisherScrubbing") {
+                        // Fisher Scrubbing: inject Gaussian noise proportional to Fisher Info (grad^2)
+                        // F_j = g_j^2  =>  std = sqrt(g_j^2) = |g_j|
+                        let noise = rng.next_gaussian();
+                        t.data[j] += strength * g.abs() * noise;
                     } else {
                         // TaskNegation: subtract gradient to move weights away from task-trained direction
                         t.data[j] -= strength * g;
@@ -141,17 +153,17 @@ fn update_tensors_in_model(vm: &mut VM, val: &mut Value, method: &str, strength:
         }
         Value::Model { fields, .. } => {
             for (_, field_val) in fields.borrow_mut().iter_mut() {
-                count += update_tensors_in_model(vm, field_val, method, strength);
+                count += update_tensors_in_model(vm, field_val, method, strength, rng);
             }
         }
         Value::List(ref mut items) => {
             for item in items.iter_mut() {
-                count += update_tensors_in_model(vm, item, method, strength);
+                count += update_tensors_in_model(vm, item, method, strength, rng);
             }
         }
         Value::Tuple(ref mut items) => {
             for item in items.iter_mut() {
-                count += update_tensors_in_model(vm, item, method, strength);
+                count += update_tensors_in_model(vm, item, method, strength, rng);
             }
         }
         _ => {}
@@ -165,4 +177,35 @@ fn uuid_like_hash(s: &str) -> String {
         hash = ((hash << 5).wrapping_add(hash)).wrapping_add(c as u64);
     }
     format!("{:016X}", hash)
+}
+
+/// Simple, self-contained pseudo-random number generator.
+struct SimpleRng {
+    state: u64,
+}
+
+impl SimpleRng {
+    fn new(seed: u64) -> Self {
+        Self { state: seed.max(1) }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut x = self.state;
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        self.state = x;
+        x
+    }
+
+    fn next_f64(&mut self) -> f64 {
+        (self.next_u64() & 0xFFFFFFFFFFFFFFF) as f64 / (0x1000000000000000u64 as f64)
+    }
+
+    // Box-Muller transform for standard normal samples
+    fn next_gaussian(&mut self) -> f64 {
+        let u1 = self.next_f64().max(1e-15);
+        let u2 = self.next_f64();
+        (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos()
+    }
 }
