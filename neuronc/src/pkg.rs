@@ -38,16 +38,22 @@ pub fn build_package(project_dir: &str) -> Result<String, String> {
     }
 
     // Now append the main source files of this package
-    // Usually located in src/main.nr or main.nr
+    // Usually located in src/main.neuron, src/main.nr, main.neuron, or main.nr
     let src_dir = project_path.join("src");
-    let main_nr = if src_dir.exists() {
+    let main_nr = if src_dir.join("main.neuron").exists() {
+        src_dir.join("main.neuron")
+    } else if src_dir.join("main.nr").exists() {
         src_dir.join("main.nr")
-    } else {
+    } else if project_path.join("main.neuron").exists() {
+        project_path.join("main.neuron")
+    } else if project_path.join("main.nr").exists() {
         project_path.join("main.nr")
+    } else {
+        project_path.join("main.neuron")
     };
 
     if !main_nr.exists() {
-        return Err(format!("Could not find main.nr or src/main.nr in {}", project_dir));
+        return Err(format!("Could not find main.neuron or src/main.neuron (nor .nr variants) in {}", project_dir));
     }
 
     let main_source = fs::read_to_string(&main_nr)
@@ -175,16 +181,22 @@ fn resolve_dependency(dep: &Dependency, project_path: &Path) -> Result<String, S
     if let Some(ref path_str) = dep.path {
         let dep_path = project_path.join(path_str);
         let src_dir = dep_path.join("src");
-        let main_nr = if src_dir.exists() {
+        let main_nr = if src_dir.join("main.neuron").exists() {
+            src_dir.join("main.neuron")
+        } else if src_dir.join("main.nr").exists() {
             src_dir.join("main.nr")
+        } else if dep_path.join("main.neuron").exists() {
+            dep_path.join("main.neuron")
         } else if dep_path.join("main.nr").exists() {
             dep_path.join("main.nr")
+        } else if dep_path.join(&format!("{}.neuron", dep.name)).exists() {
+            dep_path.join(&format!("{}.neuron", dep.name))
         } else {
             dep_path.join(&format!("{}.nr", dep.name))
         };
 
         if !main_nr.exists() {
-            return Err(format!("Could not find main file in dependency '{}' at {:?}", dep.name, dep_path));
+            return Err(format!("Could not find main file (main.neuron or main.nr) in dependency '{}' at {:?}", dep.name, dep_path));
         }
 
         fs::read_to_string(&main_nr)

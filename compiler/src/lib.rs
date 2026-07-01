@@ -32,9 +32,8 @@ pub struct CompileOutput {
 /// 3. stdlib/ relative to the compiler binary (for installed usage)
 /// 4. NEURON_PATH environment variable (colon/semicolon separated)
 fn resolve_module_path(module_name: &str, source_path: &str) -> Option<PathBuf> {
-    // Convert module.submodule to module/submodule.nr
+    // Convert module.submodule to module/submodule
     let relative = module_name.replace('.', std::path::MAIN_SEPARATOR_STR);
-    let filename = format!("{}.nr", relative);
 
     let source = Path::new(source_path);
     let source_dir = source.parent().unwrap_or(Path::new("."));
@@ -51,10 +50,14 @@ fn resolve_module_path(module_name: &str, source_path: &str) -> Option<PathBuf> 
         PathBuf::from("stdlib"),
     ];
 
+    let extensions = vec!["neuron", "nr"];
+
     for dir in &search_dirs {
-        let candidate = dir.join(&filename);
-        if candidate.exists() {
-            return Some(candidate);
+        for ext in &extensions {
+            let candidate = dir.join(format!("{}.{}", relative, ext));
+            if candidate.exists() {
+                return Some(candidate);
+            }
         }
     }
 
@@ -62,9 +65,11 @@ fn resolve_module_path(module_name: &str, source_path: &str) -> Option<PathBuf> 
     if let Ok(neuron_path) = std::env::var("NEURON_PATH") {
         let sep = if cfg!(windows) { ';' } else { ':' };
         for dir in neuron_path.split(sep) {
-            let candidate = Path::new(dir).join(&filename);
-            if candidate.exists() {
-                return Some(candidate);
+            for ext in &extensions {
+                let candidate = Path::new(dir).join(format!("{}.{}", relative, ext));
+                if candidate.exists() {
+                    return Some(candidate);
+                }
             }
         }
     }
