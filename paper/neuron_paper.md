@@ -510,7 +510,7 @@ To evaluate execution efficiency, we compare the performance of NEURON (running 
 | **PyTorch CPU (1 Thread)** | 1 | **239.39** | **1.47x** |
 | **PyTorch CPU (Multi-Thread)** | Multi | **397.32** | **0.88x** |
 
-Under execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($443.05$~ms) that are highly competitive with PyTorch CPU ($239.39$~ms). The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop. GPU backend benchmarks are deferred to future work, as the current GPU/CUDA backend is restricted to element-wise operations and kernel fusion without matrix multiplication hardware acceleration.
+Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($443.05$~ms) that run within 2x of PyTorch CPU ($239.39$~ms) on this hybrid-core hardware. The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop. GPU backend benchmarks are deferred to future work, as the current GPU/CUDA backend is restricted to element-wise operations and kernel fusion without matrix multiplication hardware acceleration.
 
 ---
 
