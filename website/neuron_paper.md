@@ -510,7 +510,7 @@ To evaluate execution efficiency, we compare the performance of NEURON (running 
 | **PyTorch CPU (1 Thread)** | 1 | **195.57** | **1.57x** |
 | **PyTorch CPU (Multi-Thread)** | Multi | **215.07** | **1.43x** |
 
-Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($228.53$~ms) that are highly competitive with PyTorch CPU ($195.57$~ms). The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop.
+Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($228.53$~ms) that are highly competitive with PyTorch CPU ($195.57$~ms). The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop. GPU backend benchmarks are deferred to future work, as the current GPU/CUDA backend is restricted to element-wise operations and kernel fusion without matrix multiplication hardware acceleration.
 
 ---
 
@@ -524,7 +524,7 @@ Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backp
 
 **Causal Inference Libraries.** DoWhy [10] and EconML [11] implement causal inference algorithms in Python. They provide runtime APIs for do-calculus but do not enforce causal correctness through types.
 
-**Gradual Typing & Effect Systems.** Gated uncertainty warning systems share theoretical roots with gradual typing systems like Pyret [12], which combine static check boundaries with runtime flexibility. Our effect system, which isolates mutating states and random state effects in machine learning, draws design principles from language research in algebraic effects and handlers like Hazel [13] (which utilizes type-level effects and holes for interactive execution) and Rholang [14] (enforcing concurrent behavioral contracts). NEURON differs by specializing these abstractions for numerical safety, specifically separating pure forward model evaluation from parameter optimization and state perturbation effects.
+**Gradual Typing & Effect Systems.** Gated uncertainty warning systems share theoretical roots with gradual typing systems like Pyret [16], which combine static check boundaries with runtime flexibility. Our effect system, which isolates mutating states and random state effects in machine learning, draws design principles from language research in algebraic effects and handlers like Hazel [17] (which utilizes type-level effects and holes for interactive execution) and Rholang [18] (enforcing concurrent behavioral contracts). NEURON differs by specializing these abstractions for numerical safety, specifically separating pure forward model evaluation from parameter optimization and state perturbation effects.
 
 **Effect Systems.** Koka [12] and Frank [13] implement algebraic effect systems for general-purpose programming. NEURON's effect system is simpler (tracking only `Mut`, `IO`, `Rand`) but is specifically designed for ML workloads where mutation tracking distinguishes pure forward passes from training loops.
 

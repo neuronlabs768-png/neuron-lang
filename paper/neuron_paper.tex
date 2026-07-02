@@ -484,7 +484,7 @@ MLP Backprop (100 steps) & NEURON VM (Interpreted) & 1 & 307.57 \\
 \end{tabular}
 \end{table}
 
-Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($228.53$~ms) that are highly competitive with PyTorch CPU ($195.57$~ms). The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop.
+Under single-threaded execution, NEURON's Native JIT compiler delivers MLP backpropagation training speeds ($228.53$~ms) that are highly competitive with PyTorch CPU ($195.57$~ms). The performance parity is achieved through our compiler optimizations: IKJ loop reordering (rearranging memory access patterns to enable auto-vectorization), thread-local memory pools (eliminating heap allocation locks during loops), and slice-based bounds-check elimination in the hot inner loop. GPU backend benchmarks are deferred to future work, as the current GPU/CUDA backend is restricted to element-wise operations and kernel fusion without matrix multiplication hardware acceleration.
 
 % ═══════════════════════════════════════════════
 %  6. RELATED WORK
