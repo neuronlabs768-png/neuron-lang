@@ -263,7 +263,7 @@ NEURON is implemented as a prototype compiler in Rust, comprising approximately 
 
 \subsection{Compiler Pipeline}
 
-The compiler follows a standard multi-pass architecture: source is tokenized by a lexer with INDENT/DEDENT support, parsed by a recursive-descent parser with Pratt precedence for expressions, type-checked in two phases (registration then body checking), lowered to SSA-style IR with basic blocks and terminators, and executed by either an interpreter (VM) or a JIT compiler that transpiles IR to Rust source and invokes \texttt{rustc}. A dedicated GPU backend pass groups contiguous element-wise operations into fused CUDA kernels compiled dynamically via the NVIDIA Runtime Compilation (NVRTC) library, executing on physical GPUs via a persistent VRAM architecture with dedicated allocation, caching pool, and zero-copy host-device tracking.
+The compiler follows a standard multi-pass architecture: source is tokenized by a lexer with INDENT/DEDENT support, parsed by a recursive-descent parser with Pratt precedence for expressions, type-checked in two phases (registration then body checking), lowered to SSA-style IR with basic blocks and terminators, and executed by either an interpreter (VM), a JIT compiler that transpiles IR to Rust source and invokes \texttt{rustc}, or a transpiler targeting standard PyTorch Python scripts for interoperability. A dedicated GPU backend pass groups contiguous element-wise operations into fused CUDA kernels compiled dynamically via the NVIDIA Runtime Compilation (NVRTC) library, executing on physical GPUs via a persistent VRAM architecture with dedicated allocation, caching pool, and zero-copy host-device tracking.
 
 \subsection{Autograd Engine}
 
