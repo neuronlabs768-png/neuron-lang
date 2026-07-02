@@ -232,7 +232,7 @@ The compiler consists of the following components:
 - **Type Checker**: Two-phase checking. Phase 1 registers all top-level declarations. Phase 2 walks function bodies, inferring expression types and applying the rules from §3.
 - **IR**: SSA-style intermediate representation with basic blocks and terminators (`Jump`, `Branch`, `Return`).
 - **IR Lowering**: Translates the typed AST into IR with scoped variable resolution and control flow lowering.
-- **Dual backends**: An interpreter (VM) and a JIT compiler (IR → Rust source → `rustc`). Both backends are tested for semantic parity on randomly generated programs (§5.4).
+- **Multiple execution targets**: An interpreter (VM), a JIT compiler (IR → Rust source → `rustc`), and a PyTorch Transpiler (IR → Python/PyTorch script) for seamless interoperability with the Python ecosystem. Both execution pipelines are tested for semantic parity (§5.4).
 - **GPU / CUDA Backend**: An optimization pass fuses contiguous element-wise IR operations (such as Add, Sub, Mul, Div, ReLU, GeLU, Sigmoid, and Tanh) into a single `CudaKernel`. The runtime dynamically compiles these kernels at runtime using the NVIDIA Runtime Compilation (NVRTC) library and executes them on CUDA hardware using a persistent VRAM allocation scheme (`cuMemAlloc_v2`) combined with a caching pool and host-device dirty state tracking, enabling zero-copy kernel chaining and eliminating redundant PCIe memory transfers.
 
 ### 4.2 Autograd Engine
