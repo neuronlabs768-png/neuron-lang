@@ -12,6 +12,7 @@ pub mod types;
 pub mod ir;
 pub mod lower;
 pub mod transpiler;
+pub mod py_transpiler;
 pub mod cuda_codegen;
 
 use errors::CompileResult;

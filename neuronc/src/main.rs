@@ -112,6 +112,32 @@ fn main() {
             }
             cmd_jit(&args[2]);
         }
+        "transpile" => {
+            if args.len() < 3 {
+                eprintln!("error: neuronc transpile requires a file argument");
+                process::exit(1);
+            }
+            let file_path = &args[2];
+            let mut target = "python";
+            let mut output_path = None;
+            let mut i = 3;
+            while i < args.len() {
+                if args[i] == "--target" && i + 1 < args.len() {
+                    target = &args[i + 1];
+                    i += 2;
+                } else if (args[i] == "-o" || args[i] == "--output") && i + 1 < args.len() {
+                    output_path = Some(&args[i + 1]);
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+            }
+            if target != "python" {
+                eprintln!("error: unsupported target '{}' (only 'python' is supported)", target);
+                process::exit(1);
+            }
+            cmd_transpile(file_path, output_path);
+        }
         "version" | "--version" | "-v" => {
             println!("neuronc {} — the NEURON Language Compiler", env!("CARGO_PKG_VERSION"));
             println!("Built for AGI model creation");
@@ -138,6 +164,7 @@ COMMANDS:
     build    Compile to NEURON IR (produces .nir file, or builds package)
     run      Compile and execute a NEURON program
     jit      Compile and execute using native Rust JIT compilation
+    transpile Transpile NEURON code to PyTorch Python script
     repl     Start interactive NEURON REPL
     add      Add a local or git dependency to neuron.toml
     version  Print version information
@@ -351,6 +378,45 @@ neuron-runtime = { path = "C:/Users/ADMIN/neuron-lang/runtime" }
             match result {
                 neuron_runtime::vm::Value::Void => {}
                 _ => println!("{}", result.display()),
+            }
+        }
+        Err(result) => {
+            eprintln!("\n{} — {} error(s) found:\n", path, result.errors.len());
+            for err in &result.errors {
+                eprintln!("  {}", err);
+                eprintln!();
+            }
+            process::exit(1);
+        }
+    }
+}
+
+fn cmd_transpile(path: &str, output_path: Option<&String>) {
+    let source = read_source(path);
+
+    match neuron_compiler::compile_with_imports(&source, path) {
+        Ok(output) => {
+            // Print warnings if any
+            if output.result.has_warnings() {
+                for warn in &output.result.warnings {
+                    eprintln!("  {}", warn);
+                }
+            }
+
+            // Transpile to PyTorch Python code
+            let py_code = neuron_compiler::py_transpiler::PyTranspiler::transpile(&output.ir);
+
+            match output_path {
+                Some(out) => {
+                    if let Err(e) = std::fs::write(out, &py_code) {
+                        eprintln!("error: failed to write output file: {}", e);
+                        process::exit(1);
+                    }
+                    eprintln!("✓ Transpiled successfully to {}", out);
+                }
+                None => {
+                    println!("{}", py_code);
+                }
             }
         }
         Err(result) => {

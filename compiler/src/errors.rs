@@ -91,11 +91,12 @@ impl NeuronError {
 
 impl fmt::Display for NeuronError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Rust style header
-        write!(f, "error[{:?}]: {}\n", self.code, self.message)?;
+        // Red bold "error", followed by bold code and message
+        write!(f, "\x1b[1;31merror\x1b[0m\x1b[1m[{:?}]: {}\x1b[0m\n", self.code, self.message)?;
         
         if let Some(ref filename) = self.filename {
-            write!(f, "  --> {}:{}:{}\n", filename, self.span.line, self.span.col)?;
+            // Cyan bold arrow, blue filename/line/col
+            write!(f, "\x1b[1;36m  --> \x1b[0m\x1b[34m{}:{}:{}\x1b[0m\n", filename, self.span.line, self.span.col)?;
             
             // Try to open the file and read the exact line
             if let Ok(content) = std::fs::read_to_string(filename) {
@@ -105,14 +106,14 @@ impl fmt::Display for NeuronError {
                     let line_num_str = format!(" {} | ", self.span.line);
                     let padding = " ".repeat(line_num_str.len());
                     
-                    // Print the line code
-                    write!(f, "{}{}\n", line_num_str, line_text)?;
+                    // Print the line code: blue line number separator, regular code
+                    write!(f, "\x1b[1;34m{} | \x1b[0m{}\n", self.span.line, line_text)?;
                     
-                    // Draw underline ^^^^
+                    // Draw underline: red bold carets
                     let col = self.span.col.saturating_sub(1);
                     let underline_spaces = " ".repeat(col);
                     let underline_carets = "^".repeat(self.span.len.max(1));
-                    write!(f, "{}{}{}\n", padding, underline_spaces, underline_carets)?;
+                    write!(f, "{}{}\x1b[1;31m{}\x1b[0m\n", padding, underline_spaces, underline_carets)?;
                 }
             }
         } else {
@@ -120,16 +121,16 @@ impl fmt::Display for NeuronError {
         }
         
         if let Some(ref exp) = self.expected {
-            write!(f, "  expected: {}\n", exp)?;
+            write!(f, "  \x1b[1;32mexpected:\x1b[0m {}\n", exp)?;
         }
         if let Some(ref act) = self.actual {
-            write!(f, "  got:      {}\n", act)?;
+            write!(f, "  \x1b[1;31mgot:\x1b[0m      {}\n", act)?;
         }
         for note in &self.notes {
-            write!(f, "  note: {}\n", note)?;
+            write!(f, "  \x1b[1;36mnote:\x1b[0m {}\n", note)?;
         }
         if let Some(ref fix) = self.fix {
-            write!(f, "  help: {}\n", fix)?;
+            write!(f, "  \x1b[1;32mhelp:\x1b[0m {}\n", fix)?;
         }
         Ok(())
     }
@@ -165,10 +166,11 @@ impl NeuronWarning {
 
 impl fmt::Display for NeuronWarning {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "warning[{:?}]: {}\n", self.code, self.message)?;
+        // Yellow bold "warning", followed by bold code and message
+        write!(f, "\x1b[1;33mwarning\x1b[0m\x1b[1m[{:?}]: {}\x1b[0m\n", self.code, self.message)?;
         
         if let Some(ref filename) = self.filename {
-            write!(f, "  --> {}:{}:{}\n", filename, self.span.line, self.span.col)?;
+            write!(f, "\x1b[1;36m  --> \x1b[0m\x1b[34m{}:{}:{}\x1b[0m\n", filename, self.span.line, self.span.col)?;
             
             if let Ok(content) = std::fs::read_to_string(filename) {
                 let lines: Vec<&str> = content.lines().collect();
@@ -177,12 +179,13 @@ impl fmt::Display for NeuronWarning {
                     let line_num_str = format!(" {} | ", self.span.line);
                     let padding = " ".repeat(line_num_str.len());
                     
-                    write!(f, "{}{}\n", line_num_str, line_text)?;
+                    write!(f, "\x1b[1;34m{} | \x1b[0m{}\n", self.span.line, line_text)?;
                     
+                    // Draw underline: yellow bold carets
                     let col = self.span.col.saturating_sub(1);
                     let underline_spaces = " ".repeat(col);
                     let underline_carets = "^".repeat(self.span.len.max(1));
-                    write!(f, "{}{}{}\n", padding, underline_spaces, underline_carets)?;
+                    write!(f, "{}{}\x1b[1;33m{}\x1b[0m\n", padding, underline_spaces, underline_carets)?;
                 }
             }
         } else {
@@ -190,10 +193,10 @@ impl fmt::Display for NeuronWarning {
         }
         
         for note in &self.notes {
-            write!(f, "  note: {}\n", note)?;
+            write!(f, "  \x1b[1;36mnote:\x1b[0m {}\n", note)?;
         }
         if let Some(ref fix) = self.fix {
-            write!(f, "  help: {}\n", fix)?;
+            write!(f, "  \x1b[1;32mhelp:\x1b[0m {}\n", fix)?;
         }
         Ok(())
     }
